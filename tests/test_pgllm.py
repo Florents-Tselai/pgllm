@@ -1,5 +1,10 @@
-from pgllm import example_function
+import pytest
+import pathlib
+import psycopg
 
 
-def test_example_function():
-    assert example_function() == 2
+def test_populated(setup_db):
+    with psycopg.connect("dbname=testpgllm") as conn:
+        with conn.cursor() as cur:
+            cur.execute("select count(*) from data")
+            assert cur.fetchone()[0] == 7

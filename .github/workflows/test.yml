@@ -36,8 +36,8 @@ jobs:
 
       - name: Install pgvector
         run: |
-          pgxnclient download vector
-          pgxnclient install vector
+          sudo pgxnclient download vector
+          sudo pgxnclient install vector
 
       - name: List extensions
         run: psql -d testllm -c 'select * from pg_extension '

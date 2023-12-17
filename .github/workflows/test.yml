@@ -14,18 +14,34 @@ jobs:
         postgres-version: [ 16, 15, 14, 13, 12 ]
     steps:
       - uses: actions/checkout@v3
+
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ matrix.postgres-version }}
+          database: testllm
+          dev-files: true
+          config: |
+            shared_preload_libraries = 'pg_stat_statements'
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: setup.py
+
       - name: Install dependencies
         run: |
           pip install '.[test]'
+
+      - name: Install pgvector
+        run: |
+          pgxnclient download vector
+          pgxnclient install vector
+
+      - name: List extensions
+        run: psql -d testllm -c 'select * from pg_extension '
+
       - name: Run tests
         run: |
           pytest

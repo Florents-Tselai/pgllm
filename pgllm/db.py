@@ -29,6 +29,7 @@ from typing import (
 import uuid
 from dataclasses import dataclass
 
+
 @dataclass
 class Column:
     name: str
@@ -44,7 +45,7 @@ class Database:
         self.conn = psycopg.connect(conninfo, **kwargs)
 
     def query(
-            self, sql: str, params: Optional[Union[Iterable, dict]] = None
+        self, sql: str, params: Optional[Union[Iterable, dict]] = None
     ) -> Generator[dict, None, None]:
         """
         Execute ``sql`` and return an iterable of dictionaries representing each row.
@@ -59,7 +60,7 @@ class Database:
             yield dict(zip(keys, row))
 
     def execute(
-            self, sql: str, parameters: Optional[Union[Iterable, dict]] = None
+        self, sql: str, parameters: Optional[Union[Iterable, dict]] = None
     ) -> psycopg.Cursor:
         """
         Execute SQL query and return a ``psycopg.Cursor``.
@@ -125,9 +126,9 @@ class Queryable:
         self.name = name
 
     def count_where(
-            self,
-            where: Optional[str] = None,
-            where_args: Optional[Union[Iterable, dict]] = None,
+        self,
+        where: Optional[str] = None,
+        where_args: Optional[Union[Iterable, dict]] = None,
     ) -> int:
         """
         Executes ``SELECT count(*) FROM table WHERE ...`` and returns a count.
@@ -156,13 +157,13 @@ class Queryable:
         return self.rows_where()
 
     def rows_where(
-            self,
-            where: Optional[str] = None,
-            where_args: Optional[Union[Iterable, dict]] = None,
-            order_by: Optional[str] = None,
-            select: str = "*",
-            limit: Optional[int] = None,
-            offset: Optional[int] = None,
+        self,
+        where: Optional[str] = None,
+        where_args: Optional[Union[Iterable, dict]] = None,
+        order_by: Optional[str] = None,
+        select: str = "*",
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> Generator[dict, None, None]:
         """
         Iterate over every row in this table or view that matches the specified where clause.
@@ -194,12 +195,12 @@ class Queryable:
             yield dict(zip(columns, row))
 
     def pks_and_rows_where(
-            self,
-            where: Optional[str] = None,
-            where_args: Optional[Union[Iterable, dict]] = None,
-            order_by: Optional[str] = None,
-            limit: Optional[int] = None,
-            offset: Optional[int] = None,
+        self,
+        where: Optional[str] = None,
+        where_args: Optional[Union[Iterable, dict]] = None,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> Generator[Tuple[Any, Dict], None, None]:
         """
         Like ``.rows_where()`` but returns ``(pk, row)`` pairs - ``pk`` can be a single value or tuple.
@@ -219,12 +220,12 @@ class Queryable:
             pks = ["rowid"]
         select = ",".join("[{}]".format(column_name) for column_name in column_names)
         for row in self.rows_where(
-                select=select,
-                where=where,
-                where_args=where_args,
-                order_by=order_by,
-                limit=limit,
-                offset=offset,
+            select=select,
+            where=where,
+            where_args=where_args,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
         ):
             row_pk = tuple(row[pk] for pk in pks)
             if len(row_pk) == 1:
@@ -251,6 +252,7 @@ class Queryable:
             "select sql from sqlite_master where name = ?", (self.name,)
         ).fetchone()[0]
 
+
 class View(Queryable):
     def exists(self):
         return True
@@ -273,8 +275,7 @@ class View(Queryable):
             if not ignore:
                 raise
 
+
 class Table(Queryable):
-    def __init__(self, db: Database,
-                 name: str,
-                 pk: Optional[Any] = None):
+    def __init__(self, db: Database, name: str, pk: Optional[Any] = None):
         super().__init__(db, name)

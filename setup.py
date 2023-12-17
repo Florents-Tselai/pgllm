@@ -6,8 +6,8 @@ VERSION = "0.0.1"
 
 def get_long_description():
     with open(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "README.md"),
-            encoding="utf8",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "README.md"),
+        encoding="utf8",
     ) as fp:
         return fp.read()
 
@@ -31,7 +31,17 @@ setup(
     license="Apache License, Version 2.0",
     version=VERSION,
     packages=["pgllm"],
-    install_requires=["click", "setuptools", "pip", "pypgconfig", "psycopg[binary,pool]", "llm", "tqdm"],
-    extras_require={"test": ["pytest", "pytest-cov", "black", "ruff", "click", "pgxnclient"]},
-    python_requires=">=3.7"
+    install_requires=[
+        "click",
+        "setuptools",
+        "pip",
+        "pypgconfig",
+        "psycopg[binary,pool]",
+        "llm",
+        "tqdm",
+    ],
+    extras_require={
+        "test": ["pytest", "pytest-cov", "black", "ruff", "click", "pgxnclient"]
+    },
+    python_requires=">=3.7",
 )

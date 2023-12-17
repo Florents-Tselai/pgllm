@@ -1,9 +1,12 @@
 import click
+
+
 @click.group()
 @click.version_option()
 def cli():
-    """ CLI for pgllm """
+    """CLI for pgllm"""
     pass
+
 
 @cli.command()
 @click.argument(

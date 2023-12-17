@@ -14,7 +14,7 @@ def get_long_description():
 
 setup(
     name="pgllm",
-    description="Easily create LLM vectors for existing Postgres data",
+    description="CLI tool for managing PostgreSQL",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Florents Tselai",

@@ -1,8 +1,14 @@
 from pgllm import Database
 
 
-def test_db_api(db):
+def test_db(db):
     assert db.name == "testpgllm"
+    assert db.current_schema == "public"
+    assert db.table_names == ["data"]
+    assert db.view_names == ["dummy"]
+
+
+def test_db_query_execute(db):
     assert db.execute("select * from data").fetchall() == [
         (1, "UA502"),
         (2, "Bananas"),

@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS DATA;
+DROP TABLE IF EXISTS DATA CASCADE ;
 
 CREATE TABLE data
 (
@@ -14,3 +14,7 @@ VALUES ('UA502'),
        ('T_601'),
        ('Yojimbo'),
        ('Drama');
+
+create view dummy as
+select *
+from data;

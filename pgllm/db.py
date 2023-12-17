@@ -82,15 +82,23 @@ class Database:
         """
         return self.conn.executescript(sql)
 
+    @property
     def table_names(self) -> List[str]:
-        pass
+        q = f"select table_name from information_schema.tables where table_schema = '{self.current_schema}' and table_type = 'BASE TABLE';"
+        return [r[0] for r in self.execute(q)]
 
+    @property
     def view_names(self) -> List[str]:
-        pass
+        q = f"select table_name from information_schema.tables where table_schema = '{self.current_schema}' and table_type = 'VIEW';"
+        return [r[0] for r in self.execute(q)]
 
     @property
     def name(self):
         return self.execute("SELECT current_database()").fetchone()[0]
+
+    @property
+    def current_schema(self) -> str:
+        return self.execute("SELECT current_schema()").fetchone()[0]
 
     def close(self):
         self.conn.close()

@@ -35,7 +35,7 @@ jobs:
           pip install '.[test]'
 
       - name: List extensions
-        run: psql -d testllm -c 'select * from pg_extension '
+        run: psql -d testpgllm -c 'select * from pg_extension '
 
       - name: Run tests
         run: |

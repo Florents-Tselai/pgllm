@@ -1,8 +1,10 @@
 <p align="center">
 
-<p align="center">
-   <img width="50%" height="40%" src="" alt="Logo">
-  </p>
+[//]: # (<p align="center">)
+
+[//]: # (   <img width="50%" height="40%" src="" alt="Logo">)
+
+[//]: # (  </p>)
 
   <h1 align="center">pgLLM</h1>
   <p align="center">
@@ -30,7 +32,6 @@
 ## Why
 
 ## How
-
 
 ## Installation
 

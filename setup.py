@@ -31,7 +31,7 @@ setup(
     license="Apache License, Version 2.0",
     version=VERSION,
     packages=["pgllm"],
-    install_requires=["click", "setuptools", "pip", "pypgconfig", "psycopg[binary,pool]", "llm"],
+    install_requires=["click", "setuptools", "pip", "pypgconfig", "psycopg[binary,pool]", "llm", "tqdm"],
     extras_require={"test": ["pytest", "pytest-cov", "black", "ruff", "click", "pgxnclient"]},
     python_requires=">=3.7"
 )

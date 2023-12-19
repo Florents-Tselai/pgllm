@@ -14,8 +14,8 @@ def get_long_description():
 
 
 setup(
-    name="pgapi",
-    description="CLI tool and Python library for manipulating Postgres databases",
+    name="pgLLM",
+    description="Easily create LLM vectors for existing Postgres data",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Florents Tselai",

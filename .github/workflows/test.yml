@@ -57,10 +57,10 @@ jobs:
     - name: On macOS with Python 3.10 test with sqlean.py
       if: matrix.os == 'macos-latest' && matrix.python-version == '3.10'
       run: pip install sqlean.py sqlite-dump
-    - name: Build extension for --load-extension test
-      if: matrix.os == 'ubuntu-latest'
-      run: |-
-        (cd tests && gcc ext.c -fPIC -shared -o ext.so && ls -lah)
+#    - name: Build extension for --load-extension test
+#      if: matrix.os == 'ubuntu-latest'
+#      run: |-
+#        (cd tests && gcc ext.c -fPIC -shared -o ext.so && ls -lah)
     - name: Run tests
       run: |
         pytest -v

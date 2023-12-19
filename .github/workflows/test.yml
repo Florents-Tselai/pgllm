@@ -1,43 +1,77 @@
 name: Test
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
-permissions:
-  contents: read
+env:
+  FORCE_COLOR: 1
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
-        postgres-version: [ 16, 15, 14, 13, 12 ]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        postgres-version: [15]
+#        postgres-version: [ 16, 15, 14, 13, 12 ]
+#        numpy: [0, 1]
+        numpy: [0]
+#        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-      - uses: ankane/setup-postgres@v1
-        with:
-          postgres-version: ${{ matrix.postgres-version }}
-          database: testpgllm
-          dev-files: true
-          config: |
-            shared_preload_libraries = 'pg_stat_statements'
+    - uses: ankane/setup-postgres@v1
+      with:
+        postgres-version: ${{ matrix.postgres-version }}
+        database: testpgllm
+        dev-files: true
+        config: |
+          shared_preload_libraries = 'pg_stat_statements'
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: setup.py
+    - name: List extensions
+      run: psql -d testpgllm -c 'select * from pg_extension '
 
-      - name: Install dependencies
-        run: |
-          pip install '.[test]'
-
-      - name: List extensions
-        run: psql -d testpgllm -c 'select * from pg_extension '
-
-      - name: Run tests
-        run: |
-          pytest
-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/cache@v3
+      name: Configure pip caching
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: |
+        pip install -e '.[test,mypy,flake8]'
+    - name: Optionally install tui dependencies (not 3.7)
+      if: matrix.python-version != '3.7'
+      run: pip install -e '.[tui]'
+    - name: Optionally install numpy
+      if: matrix.numpy == 1
+      run: pip install numpy
+    - name: Install SpatiaLite
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install libsqlite3-mod-spatialite
+    - name: On macOS with Python 3.10 test with sqlean.py
+      if: matrix.os == 'macos-latest' && matrix.python-version == '3.10'
+      run: pip install sqlean.py sqlite-dump
+    - name: Build extension for --load-extension test
+      if: matrix.os == 'ubuntu-latest'
+      run: |-
+        (cd tests && gcc ext.c -fPIC -shared -o ext.so && ls -lah)
+    - name: Run tests
+      run: |
+        pytest -v
+#    - name: run mypy
+#      run: mypy pgllm tests
+#    - name: run flake8 if Python 3.8 or higher
+#      if: matrix.python-version >= 3.8
+#      run: flake8
+    - name: Check formatting
+      run: black . --check
+#    - name: Check if cog needs to be run
+#      if: matrix.python-version != '3.7'
+#      run: |
+#        cog --check README.md docs/*.rst

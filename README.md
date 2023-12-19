@@ -24,7 +24,7 @@
 <a href="https://pypi.org/project/pgllm/"><img src="https://img.shields.io/pypi/v/pgllm?label=PyPI"></a>
 <a href="https://github.com/Florents-Tselai/pgllm/actions/workflows/test.yml?branch=mainline"><img src="https://github.com/Florents-Tselai/pgllm/actions/workflows/test.yml/badge.svg"></a>
 <a href="https://codecov.io/gh/Florents-Tselai/pgllm"><img src="https://codecov.io/gh/Florents-Tselai/pgllm/branch/main/graph/badge.svg"></a>  
-<a href="https://opensource.org/licenses/MIT license"><img src="https://img.shields.io/badge/MIT license.0-blue.svg"></a>
+<a href="https://opensource.org/licenses/Apache Software License 2.0"><img src="https://img.shields.io/badge/Apache Software License 2.0.0-blue.svg"></a>
 <a href="https://github.com/Florents-Tselai/pgllm/releases"><img src="https://img.shields.io/github/v/release/Florents-Tselai/pgllm?include_prereleases&label=changelog"></a>
 
 ## Status

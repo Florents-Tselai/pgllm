@@ -25,13 +25,15 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*"]),
     package_data={"pgllm": ["py.typed"]},
     install_requires=[
-        "pgapi",
+        "llm",
+        "pgapi==0.0.1a1",
         "sqlite-fts4",
         "click",
         "click-default-group>=1.2.3",
         "tabulate",
         "python-dateutil",
         "pluggy",
+        "pydantic>=1.10.2",
     ],
     extras_require={
         "test": ["pytest", "black", "hypothesis", "cogapp"],

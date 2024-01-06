@@ -64,13 +64,14 @@ def load_file():
 
     return _load_file
 
+
 @pytest.fixture
 def db(load_file):
     db = Database(f"dbname={DB_TEST_NAME}")
     sql_script = load_file("eshop.sql") + load_file("quotes.sql")
     db.execute(sql_script)
     yield db
-    for t in ['products', 'purchases', 'quotes', 'reviews', 'users']:
+    for t in ["products", "purchases", "quotes", "reviews", "users"]:
         db.execute(f"DROP TABLE IF EXISTS {t} CASCADE")
 
 

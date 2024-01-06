@@ -64,21 +64,14 @@ def load_file():
 
     return _load_file
 
-
 @pytest.fixture
-def fresh_db():
-    with psycopg.connect(f"dbname=postgres", autocommit=True) as conn:
-        conn.execute(f"DROP DATABASE IF EXISTS {DB_TEST_NAME}")
-        conn.execute(f"CREATE DATABASE {DB_TEST_NAME}")
+def db(load_file):
     db = Database(f"dbname={DB_TEST_NAME}")
-    return db
-
-
-@pytest.fixture
-def db(fresh_db, load_file):
     sql_script = load_file("eshop.sql") + load_file("quotes.sql")
-    fresh_db.execute(sql_script)
-    return fresh_db
+    db.execute(sql_script)
+    yield db
+    for t in ['products', 'purchases', 'quotes', 'reviews', 'users']:
+        db.execute(f"DROP TABLE IF EXISTS {t} CASCADE")
 
 
 class MockModel(llm.Model):

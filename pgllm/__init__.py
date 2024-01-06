@@ -1,4 +1,3 @@
-from .db import Database
 
 
 def example_function():

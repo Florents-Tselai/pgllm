@@ -1,0 +1,42 @@
+select add_one(1);
+ add_one 
+---------
+       2
+(1 row)
+
+select copytext('hello world');
+  copytext   
+-------------
+ hello world
+(1 row)
+
+select concat_text('pa', 'sok');
+ concat_text 
+-------------
+ pasok
+(1 row)
+
+select pgupper('hello world');
+   pgupper   
+-------------
+ HELLO WORLD
+(1 row)
+
+select pyupper('hello world');
+   pyupper   
+-------------
+ HELLO WORLD
+(1 row)
+
+select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'model');
+                           jsonb_llm_generate                            
+-------------------------------------------------------------------------
+ {"k1": "V1V1V1", "k2": "V2V2V2", "k3": 3, "message": "HELLOHELLOHELLO"}
+(1 row)
+
+select jsonb_llm_embed('"hello"'::jsonb, 'model');
+ jsonb_llm_embed 
+-----------------
+ "hello"
+(1 row)
+

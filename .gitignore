@@ -6,7 +6,6 @@
 *.lib
 *.o
 *.obj
-*.out
 *.so
 *.egg-info/
 .deps/

@@ -1,12 +1,10 @@
 # pgllm: Use LLMs in Postgres
 
 [![Github](https://img.shields.io/static/v1?label=GitHub&message=Repo&logo=GitHub&color=green)](https://github.com/Florents-Tselai/pgllm)
-[![PyPI](https://img.shields.io/pypi/v/pgllm.svg)](https://pypi.org/project/pgllm/)
 [![Documentation Status](https://readthedocs.org/projects/pgllm/badge/?version=stable)](http://pgllm.tselai.com/en/latest/?badge=stable)
 [![Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/florentstselai/)
 [![Github Sponsors](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=pink)](https://github.com/sponsors/Florents-Tselai/)
-[![pip installs](https://img.shields.io/pypi/dm/pgllm?label=pip%20installs)](https://pypi.org/project/pgllm/)
-[![Tests](https://github.com/Florents-Tselai/pgllm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3ATest)
+[![Build](https://github.com/Florents-Tselai/pgllm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3Abuild)
 [![codecov](https://codecov.io/gh/Florents-Tselai/pgllm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/pgllm)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/pgllm/blob/main/LICENSE)
 

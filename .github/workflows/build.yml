@@ -1,0 +1,80 @@
+name: build
+
+on: [ push, pull_request ]
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" , "3.12"]
+        postgres-version: [  "15.8", "16.4", "17beta3"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+          build-essential \
+          libreadline-dev \
+          zlib1g-dev \
+          flex \
+          bison \
+          libxml2-dev \
+          libxslt1-dev \
+          libssl-dev \
+          libcurl4-openssl-dev \
+          libkrb5-dev \
+          libpam0g-dev \
+          libldap2-dev \
+          libedit-dev \
+          wget
+
+      - name: Download PostgreSQL
+        run: |
+          wget https://ftp.postgresql.org/pub/source/v${{ matrix.postgres-version }}/postgresql-${{ matrix.postgres-version }}.tar.gz
+          tar -xzf postgresql-${{ matrix.postgres-version }}.tar.gz
+          cd postgresql-${{ matrix.postgres-version }}
+
+      - name: 'Build PostgreSQL'
+        run: |
+          mkdir -p $HOME/local
+          cd postgresql-${{ matrix.postgres-version }}
+          CC=/usr/bin/gcc ./configure --prefix=$HOME/local
+          make -j
+          make install
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip' # caching pip dependencies
+
+      - run: pip install -r requirements.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: 'build & test'
+        run: |
+          export PG_CONFIG=$HOME/local/bin/pg_config 
+          export CC=/usr/bin/gcc 
+          export PYTHON="$pythonLocation"/bin/python3
+          export PYVERSION=${{ matrix.python-version }} 
+          export PG_CFLAGS=$(python${{ matrix.python-version }}-config --includes) 
+          export PG_LDFLAGS=$(python${{ matrix.python-version }}-config --ldflags)
+          make -e clean all install
+
+          export PGDATA=$HOME/pgdata
+          export PGBIN=$HOME/local/bin
+          export LD_LIBRARY_PATH="$pythonLocation"/lib:/usr/local/lib:/usr/lib:$HOME/local/lib:$LD_LIBRARY_PATH
+          $PGBIN/initdb $PGDATA
+          $PGBIN/pg_ctl --pgdata $PGDATA start
+
+          make installcheck
+
+#      - name: 'Stop PostgreSQL'
+#        run: |
+#          export PGBIN=$HOME/local/bin
+#          $PGBIN/pg_ctl --pgdata $PGDATA start
+

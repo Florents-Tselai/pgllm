@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 from beanbag_docutils.sphinx.ext.github import github_linkcode_resolve
 
 # This file is execfile()d with the current directory set to its
@@ -33,17 +33,13 @@ from beanbag_docutils.sphinx.ext.github import github_linkcode_resolve
 # ones.
 extensions = [
     "myst_parser",
-    "sphinx.ext.extlinks",
+    "sphinx_copybutton",
     "sphinx.ext.autodoc",
+    "sphinx.ext.extlinks",
     "sphinx_copybutton",
     "sphinx.ext.linkcode",
 ]
-autodoc_member_order = "bysource"
-autodoc_typehints = "description"
-
-extlinks = {
-    "issue": ("https://github.com/Florents-Tselai/pgllm/issues/%s", "#%s"),
-}
+myst_enable_extensions = ["colon_fence"]
 
 
 def linkcode_resolve(domain, info):
@@ -64,14 +60,14 @@ templates_path = ["_templates"]
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = ".md"
+source_suffix = ".rst"
 
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
 project = "pgllm"
-copyright = "2023, Florents Tselai"
+copyright = "2024, Florents Tselai"
 author = "Florents Tselai"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -102,14 +98,10 @@ language = "en"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = "sphinx"
-
-# Only syntax highlight of code-block is used:
-highlight_language = "none"
+# pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
-
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -117,26 +109,24 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 html_theme = "furo"
-html_title = "pgLLM"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_theme_options = {}
+
+html_title = "pgllm"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
-html_js_files = ["js/custom.js"]
+html_static_path = []
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "pgllm-doc"
-
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -163,18 +153,24 @@ latex_documents = [
         master_doc,
         "pgllm.tex",
         "pgllm documentation",
-        "Florents Tselai",
+        "Florents Tselai \n florents@tselai.com",
         "manual",
     )
 ]
-
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "pgllm", "pgllm documentation", [author], 1)]
-
+man_pages = [
+    (
+        master_doc,
+        "pgllm",
+        "pgllm documentation",
+        [author],
+        1,
+    )
+]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -188,7 +184,6 @@ texinfo_documents = [
         "pgllm documentation",
         author,
         "pgllm",
-        "Python library for manipulating Postgres databases",
-        "Miscellaneous",
+        "LLM support in SQLite",
     )
 ]

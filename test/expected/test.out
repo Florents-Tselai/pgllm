@@ -1,40 +1,31 @@
-select add_one(1);
- add_one 
----------
-       2
-(1 row)
-
-select copytext('hello world');
-  copytext   
--------------
- hello world
-(1 row)
-
-select concat_text('pa', 'sok');
- concat_text 
--------------
- pasok
-(1 row)
-
-select pgupper('hello world');
-   pgupper   
--------------
- HELLO WORLD
-(1 row)
-
 select pyupper('hello world');
    pyupper   
 -------------
  HELLO WORLD
 (1 row)
 
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'model');
+select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-1', '{}'::jsonb);
+                  jsonb_llm_generate                   
+-------------------------------------------------------
+ {"k1": "V1", "k2": "V2", "k3": 3, "message": "HELLO"}
+(1 row)
+
+select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-3', '{"n": 3}'::jsonb);
                            jsonb_llm_generate                            
 -------------------------------------------------------------------------
  {"k1": "V1V1V1", "k2": "V2V2V2", "k3": 3, "message": "HELLOHELLOHELLO"}
 (1 row)
 
-select jsonb_llm_embed('"hello"'::jsonb, 'model');
+select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
+ERROR:  pglmm: model no-existing-model not supported
+
+select llm_generate('hello'::text, 'repeat-3'::text, '{"n": 3}'::jsonb);
+   llm_generate    
+-------------------
+ "HELLOHELLOHELLO"
+(1 row)
+
+select jsonb_llm_embed('"hello"'::jsonb, 'repeat');
  jsonb_llm_embed 
 -----------------
  "hello"

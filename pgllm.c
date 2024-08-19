@@ -13,118 +13,21 @@ _PG_init(void) {
     Py_Initialize();
 }
 
-void
-_PG_fini(void) {
+/* Tear-down */
+void _PG_fini(void) {
     Py_Finalize();
-}
-
-
-PG_FUNCTION_INFO_V1(jsonb_llm_hello);
-
-/* by value */
-
-PG_FUNCTION_INFO_V1(add_one);
-
-Datum
-add_one(PG_FUNCTION_ARGS) {
-    int32 arg = PG_GETARG_INT32(0);
-
-    PG_RETURN_INT32(arg + 1);
-}
-
-
-/* by reference, variable length */
-
-PG_FUNCTION_INFO_V1(copytext);
-
-Datum
-copytext(PG_FUNCTION_ARGS) {
-    text *t = PG_GETARG_TEXT_PP(0);
-
-    /*
-     * VARSIZE_ANY_EXHDR is the size of the struct in bytes, minus the
-     * VARHDRSZ or VARHDRSZ_SHORT of its header.  Construct the copy with a
-     * full-length header.
-     */
-    text *new_t = (text *) palloc(VARSIZE_ANY_EXHDR(t) + VARHDRSZ);
-    SET_VARSIZE(new_t, VARSIZE_ANY_EXHDR(t) + VARHDRSZ);
-
-    /*
-     * VARDATA is a pointer to the data region of the new struct.  The source
-     * could be a short datum, so retrieve its data through VARDATA_ANY.
-     */
-    memcpy(VARDATA(new_t),          /* destination */
-           VARDATA_ANY(t),          /* source */
-           VARSIZE_ANY_EXHDR(t));   /* how many bytes */
-    PG_RETURN_TEXT_P(new_t);
-}
-
-PG_FUNCTION_INFO_V1(concat_text);
-
-Datum
-concat_text(PG_FUNCTION_ARGS) {
-    text *arg1 = PG_GETARG_TEXT_PP(0);
-    text *arg2 = PG_GETARG_TEXT_PP(1);
-    int32 arg1_size = VARSIZE_ANY_EXHDR(arg1);
-    int32 arg2_size = VARSIZE_ANY_EXHDR(arg2);
-    int32 new_text_size = arg1_size + arg2_size + VARHDRSZ;
-    text *new_text = (text *) palloc(new_text_size);
-
-    SET_VARSIZE(new_text, new_text_size);
-    memcpy(VARDATA(new_text), VARDATA_ANY(arg1), arg1_size);
-    memcpy(VARDATA(new_text) + arg1_size, VARDATA_ANY(arg2), arg2_size);
-    PG_RETURN_TEXT_P(new_text);
-}
-
-PG_FUNCTION_INFO_V1(pgupper);
-
-Datum
-pgupper(PG_FUNCTION_ARGS) {
-    text *t = PG_GETARG_TEXT_PP(0);
-
-    /*
-     * VARSIZE_ANY_EXHDR is the size of the struct in bytes, minus the
-     * VARHDRSZ or VARHDRSZ_SHORT of its header.  Construct the copy with a
-     * full-length header.
-     */
-    int32 len = VARSIZE_ANY_EXHDR(t);
-    text *new_t = (text *) palloc(len + VARHDRSZ);
-    SET_VARSIZE(new_t, len + VARHDRSZ);
-
-    /*
-     * VARDATA is a pointer to the data region of the new struct.  The source
-     * could be a short datum, so retrieve its data through VARDATA_ANY.
-     */
-    char *src = VARDATA_ANY(t);
-    char *dest = VARDATA(new_t);
-
-    /*
-     * Convert each character to uppercase
-     */
-    for (int i = 0; i < len; i++) {
-        dest[i] = pg_toupper((unsigned char) src[i]);
-    }
-
-    PG_RETURN_TEXT_P(new_t);
 }
 
 PG_FUNCTION_INFO_V1(pyupper);
 
-
 Datum
 pyupper(PG_FUNCTION_ARGS) {
-    text *t = PG_GETARG_TEXT_PP(0);
+//    text *t = PG_GETARG_TEXT_PP(0);
     PyObject *py_str = NULL, *py_upper_str = NULL;
-    char *str = NULL, *upper_str = NULL;
+    char *str = text_to_cstring(PG_GETARG_TEXT_P(0));
+    char *upper_str = NULL;
     int32 len;
 
-    /*
-     * Get the C string from the PostgreSQL text object.
-     */
-    len = VARSIZE_ANY_EXHDR(t);
-    str = (char *) palloc(len + 1);
-    memcpy(str, VARDATA_ANY(t), len);
-    str[len] = '\0';  // Null-terminate the C string
 
     /*
      * Create a Python string from the C string.
@@ -173,27 +76,53 @@ pyupper(PG_FUNCTION_ARGS) {
 }
 
 typedef struct {
-    char *model;
-    int n; // Number of repetitions
-} MyActionState;
+    const char *model;
+    const Jsonb *params;
+} LLMState;
 
 
-static text *repeat_uppercase_transform(void *state, char *elem_value, int elem_len) {
-    MyActionState *my_state = (MyActionState *) state; // Cast to the correct type
-    int n = my_state->n; // Get the repetition count
-    char *model = my_state->model;
+/* Function to get an integer from a Jsonb object using a key */
+int jsonb_get_int(Jsonb *jb, char *key, int default_) {
+    return 3;
+}
 
-    // Create a new text object for the transformed value
-    int upper_len = elem_len * n; // Calculate the length of the resulting string
-    text *result = palloc(VARHDRSZ + upper_len);
-    SET_VARSIZE(result, VARHDRSZ + upper_len);
 
-    // Fill the result with the repeated uppercase string
-    char *result_ptr = VARDATA(result);
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < elem_len; j++) {
-            result_ptr[i * elem_len + j] = toupper(elem_value[j]);
+static text *jsonb_transform_llm_generate(void *state, char *elem, int elem_len) {
+    LLMState *my_state = (LLMState *) state; // Cast to the correct type
+    const char *model = my_state->model;
+    Jsonb *params = my_state->params;
+    int n;//= jsonb_get_int(params, "n", 3);
+
+    text *result = NULL;
+
+    if (strcmp(model, "repeat-1") == 0) {
+        n = 1;
+        int upper_len = elem_len * n; // Calculate the length of the resulting string
+        result = palloc(VARHDRSZ + upper_len);
+        SET_VARSIZE(result, VARHDRSZ + upper_len);
+
+        // Fill the result with the repeated uppercase string
+        char *result_ptr = VARDATA(result);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < elem_len; j++) {
+                result_ptr[i * elem_len + j] = toupper(elem[j]);
+            }
         }
+    } else if (strcmp(model, "repeat-3") == 0) {
+        n = 3;
+        int upper_len = elem_len * n; // Calculate the length of the resulting string
+        result = palloc(VARHDRSZ + upper_len);
+        SET_VARSIZE(result, VARHDRSZ + upper_len);
+
+        // Fill the result with the repeated uppercase string
+        char *result_ptr = VARDATA(result);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < elem_len; j++) {
+                result_ptr[i * elem_len + j] = toupper(elem[j]);
+            }
+        }
+    } else {
+        elog(ERROR, "pglmm: model %s not supported\n", model);
     }
 
     return result;
@@ -204,83 +133,24 @@ PG_FUNCTION_INFO_V1(jsonb_llm_generate);
 Datum
 jsonb_llm_generate(PG_FUNCTION_ARGS) {
     Jsonb *jb = PG_GETARG_JSONB_P(0);
-    char *model = PG_GETARG_CSTRING(1);
-    JsonbIterator *it;
-    JsonbParseState *parseState = NULL;
+    char *model = text_to_cstring(PG_GETARG_TEXT_P(1));
+    Jsonb *params = PG_GETARG_JSONB_P(2);
     Jsonb *res = NULL;
-    JsonbValue v,
-            k;
-    JsonbIteratorToken type;
-    bool last_was_key = false;
 
-    MyActionState *action_state = palloc(sizeof(MyActionState));
-    action_state->n = 3; // Set the number of repetitions
-    action_state->model = model;
+    LLMState *llmCtxt = palloc(sizeof(LLMState));
+    llmCtxt->model = model;
+    llmCtxt->params = params;
 
     res = transform_jsonb_string_values(
             jb,
-            action_state,
-            repeat_uppercase_transform // Pass the transformation function
+            llmCtxt,
+            jsonb_transform_llm_generate
     );
 
-//    PG_RETURN_POINTER(JsonbValueToJsonb(res));
+    pfree(llmCtxt);
+
     PG_RETURN_JSONB_P(res);
 }
-
-//Datum
-//jsonb_llm_generate(PG_FUNCTION_ARGS) {
-//    Jsonb *jb = PG_GETARG_JSONB_P(0);
-//    char *model = PG_GETARG_CSTRING(1);
-//    JsonbIterator *it;
-//    JsonbParseState *parseState = NULL;
-//    JsonbValue *res = NULL;
-//    JsonbValue v,
-//            k;
-//    JsonbIteratorToken type;
-//    bool last_was_key = false;
-//
-//    if (JB_ROOT_IS_SCALAR(jb))
-//        PG_RETURN_POINTER(jb);
-//
-//    it = JsonbIteratorInit(&jb->root);
-//
-//    while ((type = JsonbIteratorNext(&it, &v, false)) != WJB_DONE) {
-//        Assert(!(type == WJB_KEY && last_was_key));
-//
-//        if (type == WJB_KEY) {
-//            /* stash the key until we know if it has a null value */
-//            k = v;
-//            last_was_key = true;
-//            continue;
-//        }
-//
-//        if (last_was_key) {
-//            /* if the last element was a key this one can't be */
-//            last_was_key = false;
-//
-//            /* skip this field if value is null */
-////            if (type == WJB_VALUE && v.type == jbvNull)
-////                continue;
-//
-//
-//            /* otherwise, do a delayed push of the key */
-//            (void) pushJsonbValue(&parseState, WJB_KEY, &k);
-//        }
-//
-//        if (type == WJB_VALUE || type == WJB_ELEM) {
-//            if (v.type == jbvString) {
-//                v.val.string.val = "hello";
-//                v.val.string.len = strlen("hello");
-//            }
-//            res = pushJsonbValue(&parseState, type, &v);
-//        } else
-//            res = pushJsonbValue(&parseState, type, NULL);
-//    }
-//
-//    Assert(res != NULL);
-//
-//    PG_RETURN_POINTER(JsonbValueToJsonb(res));
-//}
 
 PG_FUNCTION_INFO_V1(jsonb_llm_embed);
 

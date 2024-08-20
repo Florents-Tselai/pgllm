@@ -1,23 +1,23 @@
-select pyupper('hello world');
-   pyupper   
--------------
- HELLO WORLD
-(1 row)
-
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-1', '{}'::jsonb);
-                  jsonb_llm_generate                   
--------------------------------------------------------
- {"k1": "V1", "k2": "V2", "k3": 3, "message": "HELLO"}
-(1 row)
+select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
+ERROR:  pgllm: model no-existing-model is not supported
 
 select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-3', '{"n": 3}'::jsonb);
-                           jsonb_llm_generate                            
--------------------------------------------------------------------------
- {"k1": "V1V1V1", "k2": "V2V2V2", "k3": 3, "message": "HELLOHELLOHELLO"}
+                         jsonb_llm_generate                          
+---------------------------------------------------------------------
+ {"k1": "V1", "k2": "V2V2V2", "k3": 3, "message": "HELLOHELLOHELLO"}
 (1 row)
 
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
-ERROR:  pglmm: model no-existing-model not supported
+select jsonb_llm_generate('{"message": "hello", "a": [1, "one", 2, 3]}'::jsonb, 'pyupper', '{"n": 3}'::jsonb);
+             jsonb_llm_generate              
+---------------------------------------------
+ {"a": [1, "ONE", 2, 3], "message": "HELLO"}
+(1 row)
+
+select jsonb_llm_generate('{"message": "hello"}'::jsonb, 'pyupper', '{"n": 3}'::jsonb);
+  jsonb_llm_generate  
+----------------------
+ {"message": "HELLO"}
+(1 row)
 
 select llm_generate('hello'::text, 'repeat-3'::text, '{"n": 3}'::jsonb);
    llm_generate    

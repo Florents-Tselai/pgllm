@@ -18,3 +18,7 @@ CREATE FUNCTION jsonb_llm_embed(jsonb, text) RETURNS jsonb
 AS
 'MODULE_PATHNAME'
     LANGUAGE C STRICT;
+
+CREATE FUNCTION pycall_model(text, text) returns text AS
+'MODULE_PATHNAME'
+    LANGUAGE C STRICT;

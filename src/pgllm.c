@@ -28,9 +28,9 @@ void _PG_fini(void) {
  * 4. response_txt = response.text()
  *
  */
-text *pycall_model_internal(char *prompt, char *model);
+text *pyllm_internal(char *prompt, int prompt_len, char *model, Jsonb *params);
 
-text *pycall_model_internal(char *prompt, char *model) {
+text *pyllm_internal(char *prompt, int prompt_len, char *model, Jsonb *params) {
     PyObject *pyllm_module = NULL,
             *pyllm_model = NULL,
             *pyllm_get_model_func = NULL,
@@ -59,7 +59,7 @@ text *pycall_model_internal(char *prompt, char *model) {
     }
 
     pyllm_model = PyObject_CallFunction(pyllm_get_model_func, "s", model);
-    Py_XDECREF(pyllm_get_model_func); // Release reference after calling
+    Py_XDECREF(pyllm_get_model_func);
     if (!pyllm_model) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'get_model' function\n");
@@ -99,7 +99,7 @@ text *pycall_model_internal(char *prompt, char *model) {
     }
 
     pyllm_response_txt = PyObject_CallObject(pyllm_response_text_func, NULL);
-    Py_XDECREF(pyllm_response_text_func); // Release reference after calling
+    Py_XDECREF(pyllm_response_text_func);
     if (!pyllm_response_txt) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'text' method\n");
@@ -128,10 +128,11 @@ text *pycall_model_internal(char *prompt, char *model) {
 }
 
 PG_FUNCTION_INFO_V1(pycall_model);
+
 Datum pycall_model(PG_FUNCTION_ARGS) {
     char *prompt = text_to_cstring(PG_GETARG_TEXT_P(0));
     char *model = text_to_cstring(PG_GETARG_TEXT_P(1));
-    text *result = pycall_model_internal(prompt, model);
+    text *result = pyllm_internal(prompt, strlen(prompt), model, NULL);
 
     PG_RETURN_TEXT_P(result);
 }
@@ -140,10 +141,9 @@ PG_FUNCTION_INFO_V1(pyupper);
 
 Datum
 pyupper(PG_FUNCTION_ARGS) {
-//    text *t = PG_GETARG_TEXT_PP(0);
     PyObject *py_str = NULL, *py_upper_str = NULL;
     char *str = text_to_cstring(PG_GETARG_TEXT_P(0));
-    char *upper_str = NULL;
+    const char *upper_str = NULL;
     int len;
 
 
@@ -245,13 +245,18 @@ text *impl_repeat_3(void *params, char *prompt, int prompt_len) {
 }
 
 text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len) {
-    pgllm_model *model = (pgllm_model *) state;
+    LlmModelCtxt *model = (LlmModelCtxt *) state;
 
     text *result = NULL;
 
     result = model->func.generative.generate(NULL, prompt, prompt_len);
 
     return result;
+}
+
+text *jsonb_transform_llm_generate_pyllm(void *ctxt, char *prompt, int prompt_len) {
+    LlmModelCtxt *modelCtxt = (LlmModelCtxt *) ctxt;
+    return pyllm_internal(prompt, prompt_len, "markov", NULL);
 }
 
 PG_FUNCTION_INFO_V1(jsonb_llm_generate);
@@ -261,22 +266,35 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
     Jsonb *jb = PG_GETARG_JSONB_P(0);
     char *model_name = text_to_cstring(PG_GETARG_TEXT_P(1));
     Jsonb *params = PG_GETARG_JSONB_P(2);
-    Jsonb *res = NULL;
+    Jsonb *result = NULL;
+    bool model_found = false;
+    LlmModelCtxt *model = find_model(model_name);
 
-    pgllm_model *model = find_model(model_name);
-    if (model == NULL)
-        ereport(ERROR,
-                (errcode(ERRCODE_DATA_EXCEPTION),
-                        errmsg("pgllm: model %s is not supported\n", model_name)));
-
-
-    res = transform_jsonb_string_values(
+    /* If not found in the static models catalog pass it to pyllm */
+    if (model)
+        result = transform_jsonb_string_values(
             jb,
             model,
             jsonb_transform_llm_generate
-    );
+        );
 
-    PG_RETURN_JSONB_P(res);
+    else
+        result = transform_jsonb_string_values(
+            jb,
+            model,
+            jsonb_transform_llm_generate_pyllm
+        );
+
+    if (!result) {
+
+    }
+    // if (model == NULL)
+    //     ereport(ERROR,
+    //         (errcode(ERRCODE_DATA_EXCEPTION),
+    //             errmsg("pgllm: model %s is not supported\n", model_name)));
+
+
+    PG_RETURN_JSONB_P(result);
 }
 
 PG_FUNCTION_INFO_V1(jsonb_llm_embed);

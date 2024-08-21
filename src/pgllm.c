@@ -254,9 +254,13 @@ text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len) {
     return result;
 }
 
-text *jsonb_transform_llm_generate_pyllm(void *ctxt, char *prompt, int prompt_len) {
+static text *jsonb_transform_llm_generate_pyllm(void *ctxt, char *prompt, int prompt_len) {
+    text *result;
     LlmModelCtxt *modelCtxt = (LlmModelCtxt *) ctxt;
-    return pyllm_internal(prompt, prompt_len, "markov", NULL);
+
+    result = pyllm_internal(prompt, prompt_len, modelCtxt->name, modelCtxt->params);
+
+    return result;
 }
 
 PG_FUNCTION_INFO_V1(jsonb_llm_generate);
@@ -267,35 +271,39 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
     char *model_name = text_to_cstring(PG_GETARG_TEXT_P(1));
     Jsonb *params = PG_GETARG_JSONB_P(2);
     Jsonb *result = NULL;
-    bool model_found = false;
     LlmModelCtxt *model = find_model(model_name);
 
-    /* If not found in the static models catalog pass it to pyllm */
-    if (model)
+    if (model) {
         result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate
+                jb,
+                model,
+                jsonb_transform_llm_generate
+        );
+    } else {
+        model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
+        model->name = model_name;
+        model->params = params;
+
+        result = transform_jsonb_string_values(
+                jb,
+                model,
+                jsonb_transform_llm_generate_pyllm
         );
 
-    else
-        result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate_pyllm
-        );
+        pfree(model);
+    }
 
     if (!result) {
-
+        if (model == NULL) {
+            ereport(ERROR,
+                    (errcode(ERRCODE_DATA_EXCEPTION),
+                            errmsg("pgllm: model %s is not supported\n", model_name)));
+        }
     }
-    // if (model == NULL)
-    //     ereport(ERROR,
-    //         (errcode(ERRCODE_DATA_EXCEPTION),
-    //             errmsg("pgllm: model %s is not supported\n", model_name)));
-
 
     PG_RETURN_JSONB_P(result);
 }
+
 
 PG_FUNCTION_INFO_V1(jsonb_llm_embed);
 

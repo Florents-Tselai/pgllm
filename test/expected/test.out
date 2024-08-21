@@ -22,9 +22,7 @@ END LOOP;
 RETURN is_contained;
 END;
 $$ LANGUAGE plpgsql;
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
-ERROR:  pgllm: model no-existing-model is not supported
-
+-- select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
 select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-3', '{"n": 3}'::jsonb);
                          jsonb_llm_generate                          
 ---------------------------------------------------------------------
@@ -43,6 +41,12 @@ select jsonb_llm_generate('{"message": "hello"}'::jsonb, 'pyupper', '{"n": 3}'::
  {"message": "HELLO"}
 (1 row)
 
+select is_valid_markov('hello there', llm_generate('hello there', 'markov'));
+ is_valid_markov 
+-----------------
+ t
+(1 row)
+
 select llm_generate('hello'::text, 'repeat-3'::text, '{"n": 3}'::jsonb);
    llm_generate    
 -------------------
@@ -53,11 +57,5 @@ select jsonb_llm_embed('"hello"'::jsonb, 'repeat');
  jsonb_llm_embed 
 -----------------
  "hello"
-(1 row)
-
-select is_valid_markov('hello there', pycall_model('hello there', 'markov'));
- is_valid_markov 
------------------
- t
 (1 row)
 

@@ -5,6 +5,7 @@
 #include "utils/jsonfuncs.h"
 #include "utils/builtins.h"
 #include "pgllm.h"
+#include "fmgr.h"
 
 
 PG_MODULE_MAGIC;
@@ -227,7 +228,7 @@ text *impl_pyupper(void *params, char *prompt, int prompt_len) {
     return result;
 }
 
-text *impl_repeat_3(void *params, char *prompt, int prompt_len) {
+text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     int n = 3;
     text *result = NULL;
     int upper_len = prompt_len * n;
@@ -309,4 +310,17 @@ PG_FUNCTION_INFO_V1(jsonb_llm_embed);
 
 Datum jsonb_llm_embed(PG_FUNCTION_ARGS) {
     PG_RETURN_JSONB_P(PG_GETARG_JSONB_P_COPY(0));
+}
+
+PG_FUNCTION_INFO_V1(myjsonb_get);
+Datum myjsonb_get(PG_FUNCTION_ARGS) {
+    Jsonb	   *jb = PG_GETARG_JSONB_P(0);
+    text	   *key = PG_GETARG_TEXT_PP(1);
+
+    Datum datumRes = DirectFunctionCall2(jsonb_object_field,
+                                         JsonbPGetDatum(jb),
+                                         PointerGetDatum(key)
+                                         );
+
+    PG_RETURN_DATUM(datumRes);
 }

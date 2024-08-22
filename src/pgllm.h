@@ -31,14 +31,14 @@ typedef struct {
 /* Every string value in the jsonb is considered a prompt  */
 extern text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len);
 
-text *impl_repeat_3(void *params, char *prompt, int prompt_len);
+text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len);
 
 text *impl_pyupper(void *params, char *prompt, int prompt_len);
 
 
 static LlmModelCtxt PGLLM_MODELS_CATALOG[] = {
-    {"repeat-3", NULL, genModel, {.generative = {.generate = impl_repeat_3}}, NULL, NULL},
-    {"pyupper", NULL, genModel, {.generative = {.generate = impl_pyupper}}, NULL, NULL}
+    {"repeat-n", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL},
+    {"pyupper", NULL, genModel, {.generative = {.generate = impl_pyupper}},                NULL, NULL}
 };
 
 

@@ -59,3 +59,9 @@ select jsonb_llm_embed('"hello"'::jsonb, 'repeat');
  "hello"
 (1 row)
 
+select myjsonb_get('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'message');
+ myjsonb_get 
+-------------
+ "hello"
+(1 row)
+

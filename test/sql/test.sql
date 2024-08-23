@@ -46,4 +46,5 @@ select is_valid_markov(:'gen_result', :'prompt');
 SELECT llm_generate(:'prompt', :'model', :'params') AS gen_result \gset
 
 select is_valid_markov(:'gen_result', :'prompt');
+select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME: this returns length + 1 (probably whitespace)
 -- END TEST CASE

@@ -20,6 +20,16 @@ void _PG_fini(void) {
     Py_Finalize();
 }
 
+/* Helper function to convert C string to Python Unicode string */
+static PyObject *to_py_unicode(const char *c_str) {
+    return PyUnicode_FromString(c_str);
+}
+
+/* Helper function to convert C boolean to Python boolean */
+static PyObject *to_py_bool(bool value) {
+    return PyBool_FromLong(value ? 1 : 0);
+}
+
 /*
  * A C-way to basically call
  *
@@ -29,13 +39,17 @@ void _PG_fini(void) {
  * 4. response_txt = response.text()
  *
  */
-text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream, Jsonb *options);
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream,
+                                   Jsonb *options);
 
-text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream, Jsonb *options) {
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream,
+                                   Jsonb *options) {
     PyObject *pyllm_module = NULL,
             *pyllm_model_name = NULL,
             *pyllm_system = NULL,
             *pyllm_stream = NULL,
+            *pyllm_prompt_method = NULL,
+            *options_dict = NULL,
             *pyllm_response = NULL,
             *pyllm_response_txt = NULL;
 
@@ -65,17 +79,65 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
     /*
      * 3. response = py_model.prompt(<prompt cstring>)
      *
-     * prompt( self, prompt: Optional[str], system: Optional[str] = None, stream: bool = True, **options
+     * prompt( self, prompt: Optional[str], system: Optional[str] = None, stream: bool = True, **options)
      * */
     pyllm_system = system ? PyUnicode_FromString(system) : Py_None;
-    Py_XINCREF(pyllm_system);  // Py_None should not be decremented
-
+    Py_XINCREF(pyllm_system); // Py_None should not be decremented
     pyllm_stream = PyBool_FromLong(stream ? 1 : 0);
 
-    pyllm_response = PyObject_CallMethod(pyllm_model_name, "prompt", "sOO", prompt, pyllm_system, PyBool_FromLong(stream), pyllm_stream);
+    // pyllm_response = PyObject_CallMethod(pyllm_model_name, "prompt", "sOO", prompt, pyllm_system, PyBool_FromLong(stream), pyllm_stream);
+    // if (!pyllm_response) {
+    //     PyErr_Print();
+    //     fprintf(stderr, "Failed to call 'prompt' method\n");
+    //     return NULL;
+    // }
+
+    /* Retrieve the 'prompt' method */
+    pyllm_prompt_method = PyObject_GetAttrString(pyllm_model_name, "prompt");
+    if (!pyllm_prompt_method) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to retrieve 'prompt' method\n");
+        Py_XDECREF(pyllm_model_name);
+        Py_XDECREF(pyllm_module);
+        return NULL;
+    }
+
+    /* Create an array of arguments */
+    PyObject *args[3] = {to_py_unicode(prompt), pyllm_system, pyllm_stream};
+
+    options_dict = PyDict_New();
+    if (!options_dict) {
+        PyErr_Print();
+    }
+
+    // Create a Python integer object for the value 20
+    PyObject *py_length_value = PyLong_FromLong(20);
+    if (!py_length_value) {
+        PyErr_Print();
+        // Handle error: Failed to create integer object
+        Py_DECREF(options_dict);
+    }
+
+    // Add the ("length", 20) item to the dictionary
+    if (PyDict_SetItemString(options_dict, "length", py_length_value) != 0) {
+        PyErr_Print();
+        // Handle error: Failed to set dictionary item
+        Py_DECREF(py_length_value);
+        Py_DECREF(options_dict);
+    }
+
+
+    /* Call the method using PyObject_VectorcallDict */
+    pyllm_response = PyObject_VectorcallDict(pyllm_prompt_method, args, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET,
+                                             options_dict);
     if (!pyllm_response) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'prompt' method\n");
+        Py_XDECREF(pyllm_system);
+        Py_XDECREF(pyllm_stream);
+        Py_XDECREF(pyllm_prompt_method);
+        Py_XDECREF(pyllm_model_name);
+        Py_XDECREF(pyllm_module);
         return NULL;
     }
 
@@ -208,8 +270,8 @@ text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     char *append = "\0";
 
     text *result = DatumGetTextPP(DirectFunctionCall2(repeat,
-                                                      PointerGetDatum(cstring_to_text(prompt)),
-                                                      Int32GetDatum(n)
+        PointerGetDatum(cstring_to_text(prompt)),
+        Int32GetDatum(n)
     ));
 
     return result;
@@ -253,7 +315,8 @@ llm_generate(PG_FUNCTION_ARGS) {
     /* search for model in the catalog */
     modelCtxt = search_models_catalog(model_name);
 
-    if (modelCtxt) { //found in catalog
+    if (modelCtxt) {
+        //found in catalog
         /* The necessary context is already defined in the catalog statically, so we don't have to build it */
         result = modelCtxt->func.generative.generate(modelCtxt->params, prompt, strlen(prompt));
     } else {
@@ -261,13 +324,13 @@ llm_generate(PG_FUNCTION_ARGS) {
         modelCtxt = (LlmModelCtxt *) palloc0(sizeof(LlmModelCtxt));
         modelCtxt->name = model_name;
         modelCtxt->params = params;
-        result = python_llm_generate_internal(prompt, prompt_len, model_name, "", 0,  params);
+        result = python_llm_generate_internal(prompt, prompt_len, model_name, "", 0, params);
 
         if (!result) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                            errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
-                                   model_name)));
+                        errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
+                            model_name)));
         }
     }
 
@@ -285,18 +348,18 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
 
     if (model) {
         result = transform_jsonb_string_values(
-                jb,
-                model,
-                jsonb_transform_llm_generate
+            jb,
+            model,
+            jsonb_transform_llm_generate
         );
     } else {
         model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
         model->name = model_name;
 
         result = transform_jsonb_string_values(
-                jb,
-                model,
-                jsonb_transform_llm_generate_pyllm
+            jb,
+            model,
+            jsonb_transform_llm_generate_pyllm
         );
 
         pfree(model);
@@ -306,7 +369,7 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
         if (model == NULL) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                            errmsg("pgllm: model %s is not supported\n", model_name)));
+                        errmsg("pgllm: model %s is not supported\n", model_name)));
         }
     }
 

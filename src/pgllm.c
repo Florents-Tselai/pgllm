@@ -43,7 +43,9 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
     const char *result = NULL;
 
 
-    /* 1. import llm */
+    /*
+     * 1. import llm
+     * */
     pyllm_module = PyImport_ImportModule("llm");
     if (!pyllm_module) {
         PyErr_Print();
@@ -60,7 +62,8 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
         return NULL;
     }
 
-    /* 3. response = py_model.prompt(<prompt cstring>)
+    /*
+     * 3. response = py_model.prompt(<prompt cstring>)
      *
      * prompt( self, prompt: Optional[str], system: Optional[str] = None, stream: bool = True, **options
      * */

@@ -36,6 +36,8 @@ LANGUAGE plpgsql;
 -- BEGIN TEST CASE: markov without parameters
 \set prompt 'The quick brown fox jumps over the lazy dog'
 \set model 'markov'
+--see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/llm_markov/__init__.py#L22
+\set params '{"length": 20, "delay": 0.2}'
 SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
 select is_valid_markov(:'gen_result', :'prompt');
  is_valid_markov 
@@ -44,8 +46,8 @@ select is_valid_markov(:'gen_result', :'prompt');
 (1 row)
 
 -- END DEST CASE
--- BEGIN TEST CASE: markov with length paraμ
-SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
+-- BEGIN TEST CASE: markov with params
+SELECT llm_generate(:'prompt', :'model', :'params') AS gen_result \gset
 select is_valid_markov(:'gen_result', :'prompt');
  is_valid_markov 
 -----------------

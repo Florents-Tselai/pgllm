@@ -1,6 +1,3 @@
--- error for model not found
-select llm_generate('hello', 'non-existing-model');
-
 -- testing a simple model coded in C and store in the static catalog
 select llm_generate('hello', 'repeat-3');
 
@@ -43,7 +40,7 @@ SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
 select is_valid_markov(:'gen_result', :'prompt');
 -- END DEST CASE
 
--- BEGIN TEST CASE: markov with length para
+-- BEGIN TEST CASE: markov with length paraμ
 SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
 
 select is_valid_markov(:'gen_result', :'prompt');

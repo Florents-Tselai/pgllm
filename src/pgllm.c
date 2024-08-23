@@ -285,8 +285,7 @@ llm_generate(PG_FUNCTION_ARGS) {
         /* Model not found in static catalog, forwarding to Python LLM , but build a context first*/
         modelCtxt = (LlmModelCtxt *) palloc0(sizeof(LlmModelCtxt));
         modelCtxt->name = model_name;
-//        modelCtxt->params = params;
-//        modelCtxt->func.generative.generate = jsonb_transform_llm_generate_pyllm;
+        modelCtxt->params = params;
         result = python_llm_generate_internal(prompt, prompt_len, model_name, params);
 
         if (!result) {

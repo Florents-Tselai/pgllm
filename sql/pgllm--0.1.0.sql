@@ -1,28 +1,27 @@
 CREATE FUNCTION pyupper(text) RETURNS text
 AS
 'MODULE_PATHNAME'
-    LANGUAGE C STRICT;
+    LANGUAGE C;
 
-CREATE FUNCTION jsonb_llm_generate(jsonb, text, jsonb default '{}') RETURNS jsonb
+CREATE FUNCTION llm_generate(text, text, jsonb default null) RETURNS text
 AS
 'MODULE_PATHNAME'
-    LANGUAGE C STRICT;
+    LANGUAGE C;
 
-CREATE FUNCTION llm_generate(text, text, jsonb default '{}') RETURNS text
+CREATE FUNCTION jsonb_llm_generate(jsonb, text, jsonb default null) RETURNS jsonb
 AS
-'
-    select jsonb_llm_generate(to_jsonb($1), $2, $3)::text
-' language sql;
+'MODULE_PATHNAME'
+    LANGUAGE C;
 
 CREATE FUNCTION jsonb_llm_embed(jsonb, text) RETURNS jsonb
 AS
 'MODULE_PATHNAME'
-    LANGUAGE C STRICT;
+    LANGUAGE C;
 
 CREATE FUNCTION pycall_model(text, text) returns text AS
 'MODULE_PATHNAME'
-    LANGUAGE C STRICT;
+    LANGUAGE C;
 
 CREATE FUNCTION myjsonb_get(jsonb, text) returns jsonb AS
 'MODULE_PATHNAME'
-    LANGUAGE C STRICT;
+    LANGUAGE C;

@@ -37,14 +37,14 @@ text *impl_pyupper(void *params, char *prompt, int prompt_len);
 
 
 static LlmModelCtxt PGLLM_MODELS_CATALOG[] = {
-    {"repeat-n", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL},
+    {"repeat-3", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL},
     {"pyupper", NULL, genModel, {.generative = {.generate = impl_pyupper}},                NULL, NULL}
 };
 
 
-LlmModelCtxt *find_model(char *name);
+LlmModelCtxt *search_models_catalog(char *name);
 
-inline LlmModelCtxt *find_model(char *name) {
+inline LlmModelCtxt *search_models_catalog(char *name) {
     size_t i, j; // Declare inner loop variable
     char **aliases; // Pointer for aliases
 

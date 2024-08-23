@@ -1,46 +1,23 @@
-CREATE OR REPLACE FUNCTION is_valid_markov(prompt TEXT, generated TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-prompt_words TEXT[];
-    generated_words TEXT[];
-    word TEXT;
-    is_contained BOOLEAN := TRUE;
-BEGIN
-    -- Split the prompt and generated text into arrays of words
-    prompt_words := string_to_array(lower(prompt), ' ');
-    generated_words := string_to_array(lower(generated), ' ');
+-- error for model not found
+select llm_generate('hello', 'non-existing-model');
 
-    -- Check if every word in prompt_words is contained in generated_words
-    FOREACH word IN ARRAY prompt_words
-    LOOP
-        IF NOT word = ANY(generated_words) THEN
-            is_contained := FALSE;
-            EXIT;  -- Exit the loop early if a word is not found
-END IF;
-END LOOP;
+-- testing a simple model coded in C and store in the static catalog
+select llm_generate('hello', 'repeat-3');
 
-RETURN is_contained;
-END;
-$$ LANGUAGE plpgsql;
+--
+--
+--
+CREATE
+OR REPLACE FUNCTION is_valid_markov(generated text, prompt text)
+RETURNS boolean AS $$
+SELECT NOT EXISTS (SELECT word
+                   FROM unnest(regexp_split_to_array(lower(generated), '\s+')) AS word
+                   WHERE word <> ''
+                     AND word NOT IN (SELECT unnest(regexp_split_to_array(lower(prompt), '\s+'))));
+$$
+LANGUAGE sql;
+--
+--
+--
 
-
-
-
--- select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'no-existing-model', '{"n": 3}'::jsonb);
-
-
-
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'repeat-n', '{"n": 3}'::jsonb);
-
-select jsonb_llm_generate('{"message": "hello", "a": [1, "one", 2, 3]}'::jsonb, 'pyupper', '{"n": 3}'::jsonb);
-
-select jsonb_llm_generate('{"message": "hello"}'::jsonb, 'pyupper', '{"n": 3}'::jsonb);
-
-select is_valid_markov('hello there', llm_generate('hello there', 'markov'));
-
-select llm_generate('hello'::text, 'repeat-n'::text, '{"n": 3}'::jsonb);
-
-select jsonb_llm_embed('"hello"'::jsonb, 'repeat');
-
-select myjsonb_get('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'message');
-
+select is_valid_markov(llm_generate('hello there', 'markov'), 'hello there');

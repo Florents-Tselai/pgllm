@@ -29,9 +29,9 @@ void _PG_fini(void) {
  * 4. response_txt = response.text()
  *
  */
-text *pyllm_internal(char *prompt, int prompt_len, char *model, Jsonb *params);
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Jsonb *params);
 
-text *pyllm_internal(char *prompt, int prompt_len, char *model, Jsonb *params) {
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Jsonb *params) {
     PyObject *pyllm_module = NULL,
             *pyllm_model = NULL,
             *pyllm_get_model_func = NULL,
@@ -59,7 +59,7 @@ text *pyllm_internal(char *prompt, int prompt_len, char *model, Jsonb *params) {
         return NULL;
     }
 
-    pyllm_model = PyObject_CallFunction(pyllm_get_model_func, "s", model);
+    pyllm_model = PyObject_CallFunction(pyllm_get_model_func, "s", pyllm_model);
     Py_XDECREF(pyllm_get_model_func);
     if (!pyllm_model) {
         PyErr_Print();
@@ -133,7 +133,7 @@ PG_FUNCTION_INFO_V1(pycall_model);
 Datum pycall_model(PG_FUNCTION_ARGS) {
     char *prompt = text_to_cstring(PG_GETARG_TEXT_P(0));
     char *model = text_to_cstring(PG_GETARG_TEXT_P(1));
-    text *result = pyllm_internal(prompt, strlen(prompt), model, NULL);
+    text *result = python_llm_generate_internal(prompt, strlen(prompt), model, NULL);
 
     PG_RETURN_TEXT_P(result);
 }
@@ -230,18 +230,13 @@ text *impl_pyupper(void *params, char *prompt, int prompt_len) {
 
 text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     int n = 3;
-    text *result = NULL;
-    int upper_len = prompt_len * n;
-    result = palloc(VARHDRSZ + upper_len);
-    SET_VARSIZE(result, VARHDRSZ + upper_len);
+    char *append = "\0";
 
-    // Fill the result with the repeated uppercase string
-    char *result_ptr = VARDATA(result);
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < prompt_len; j++) {
-            result_ptr[i * strlen(prompt) + j] = toupper(prompt[j]);
-        }
-    }
+    text *result = DatumGetTextPP(DirectFunctionCall2(repeat,
+                                                      PointerGetDatum(cstring_to_text(prompt)),
+                                                      Int32GetDatum(n)
+    ));
+
     return result;
 }
 
@@ -250,7 +245,7 @@ text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len) {
 
     text *result = NULL;
 
-    result = model->func.generative.generate(NULL, prompt, prompt_len);
+    result = model->func.generative.generate(model->params, prompt, prompt_len);
 
     return result;
 }
@@ -259,9 +254,47 @@ static text *jsonb_transform_llm_generate_pyllm(void *ctxt, char *prompt, int pr
     text *result;
     LlmModelCtxt *modelCtxt = (LlmModelCtxt *) ctxt;
 
-    result = pyllm_internal(prompt, prompt_len, modelCtxt->name, modelCtxt->params);
+    result = python_llm_generate_internal(prompt, prompt_len, modelCtxt->name, modelCtxt->params);
 
     return result;
+}
+
+
+PG_FUNCTION_INFO_V1(llm_generate);
+
+Datum
+llm_generate(PG_FUNCTION_ARGS) {
+    char *prompt = text_to_cstring(PG_GETARG_TEXT_PP(0));
+    int32 prompt_len = strlen(prompt);
+    char *model_name = text_to_cstring(PG_GETARG_TEXT_PP(1));
+    Jsonb *params = NULL; //PG_GETARG_JSONB_P(2);
+    LlmModelCtxt *modelCtxt = NULL;
+
+    text *result = NULL;
+
+    /* search for model in the catalog */
+    modelCtxt = search_models_catalog(model_name);
+
+    if (modelCtxt) { //found in catalog
+        /* The necessary context is already defined in the catalog statically, so we don't have to build it */
+        result = modelCtxt->func.generative.generate(modelCtxt->params, prompt, strlen(prompt));
+    } else {
+        /* Model not found in static catalog, forwarding to Python LLM , but build a context first*/
+        modelCtxt = (LlmModelCtxt *) palloc0(sizeof(LlmModelCtxt));
+        modelCtxt->name = model_name;
+//        modelCtxt->params = params;
+//        modelCtxt->func.generative.generate = jsonb_transform_llm_generate_pyllm;
+        result = python_llm_generate_internal(prompt, prompt_len, model_name, params);
+
+        if (!result) {
+            ereport(ERROR,
+                    (errcode(ERRCODE_DATA_EXCEPTION),
+                            errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
+                                   model_name)));
+        }
+    }
+
+    PG_RETURN_TEXT_P(result);
 }
 
 PG_FUNCTION_INFO_V1(jsonb_llm_generate);
@@ -270,9 +303,8 @@ Datum
 jsonb_llm_generate(PG_FUNCTION_ARGS) {
     Jsonb *jb = PG_GETARG_JSONB_P(0);
     char *model_name = text_to_cstring(PG_GETARG_TEXT_P(1));
-    Jsonb *params = PG_GETARG_JSONB_P(2);
     Jsonb *result = NULL;
-    LlmModelCtxt *model = find_model(model_name);
+    LlmModelCtxt *model = search_models_catalog(model_name);
 
     if (model) {
         result = transform_jsonb_string_values(
@@ -283,7 +315,6 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
     } else {
         model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
         model->name = model_name;
-        model->params = params;
 
         result = transform_jsonb_string_values(
                 jb,
@@ -313,14 +344,15 @@ Datum jsonb_llm_embed(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(myjsonb_get);
+
 Datum myjsonb_get(PG_FUNCTION_ARGS) {
-    Jsonb	   *jb = PG_GETARG_JSONB_P(0);
-    text	   *key = PG_GETARG_TEXT_PP(1);
+    Jsonb *jb = PG_GETARG_JSONB_P(0);
+    text *key = PG_GETARG_TEXT_PP(1);
 
     Datum datumRes = DirectFunctionCall2(jsonb_object_field,
                                          JsonbPGetDatum(jb),
                                          PointerGetDatum(key)
-                                         );
+    );
 
     PG_RETURN_DATUM(datumRes);
 }

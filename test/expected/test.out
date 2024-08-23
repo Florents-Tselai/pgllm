@@ -54,4 +54,10 @@ select is_valid_markov(:'gen_result', :'prompt');
  t
 (1 row)
 
+select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME: this returns length + 1 (probably whitespace)
+ ?column? 
+----------
+       20
+(1 row)
+
 -- END TEST CASE

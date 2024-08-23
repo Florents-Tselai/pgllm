@@ -22,6 +22,6 @@ CREATE FUNCTION pycall_model(text, text) returns text AS
 'MODULE_PATHNAME'
     LANGUAGE C;
 
-CREATE FUNCTION myjsonb_get(jsonb, text) returns jsonb AS
+CREATE FUNCTION myjsonb_get(jsonb, text) returns text AS
 'MODULE_PATHNAME'
     LANGUAGE C;

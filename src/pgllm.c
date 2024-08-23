@@ -49,7 +49,7 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
             *pyllm_system = NULL,
             *pyllm_stream = NULL,
             *pyllm_prompt_method = NULL,
-            *options_dict = NULL,
+            *kwoptions = NULL,
             *pyllm_response = NULL,
             *pyllm_response_txt = NULL;
 
@@ -105,31 +105,48 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
     /* Create an array of arguments */
     PyObject *args[3] = {to_py_unicode(prompt), pyllm_system, pyllm_stream};
 
-    options_dict = PyDict_New();
-    if (!options_dict) {
+    kwoptions = PyDict_New();
+    if (!kwoptions) {
         PyErr_Print();
     }
 
-    // Create a Python integer object for the value 20
-    PyObject *py_length_value = PyLong_FromLong(20);
-    if (!py_length_value) {
-        PyErr_Print();
-        // Handle error: Failed to create integer object
-        Py_DECREF(options_dict);
-    }
 
-    // Add the ("length", 20) item to the dictionary
-    if (PyDict_SetItemString(options_dict, "length", py_length_value) != 0) {
-        PyErr_Print();
-        // Handle error: Failed to set dictionary item
-        Py_DECREF(py_length_value);
-        Py_DECREF(options_dict);
+    if (options) {
+        // Convert options to a Python string
+        PyObject *options_str = PyUnicode_FromString(JsonbToCString(NULL, &options->root, VARSIZE(options)));
+        if (!options_str) {
+            PyErr_Print();
+        } else {
+            // Import the json module
+            PyObject *json_module = PyImport_ImportModule("json");
+            if (!json_module) {
+                PyErr_Print();
+            } else {
+                // Get the loads function from the json module
+                PyObject *json_loads = PyObject_GetAttrString(json_module, "loads");
+                if (!json_loads || !PyCallable_Check(json_loads)) {
+                    PyErr_Print();
+                } else {
+                    // Call json.loads(options_str)
+                    PyObject *parsed_dict = PyObject_CallFunctionObjArgs(json_loads, options_str, NULL);
+                    if (!parsed_dict) {
+                        PyErr_Print();
+                    } else if (PyDict_Check(parsed_dict)) {
+                        // Set kwoptions to the parsed dictionary
+                        PyDict_Update(kwoptions, parsed_dict);
+                    }
+                    Py_XDECREF(parsed_dict);
+                }
+                Py_XDECREF(json_loads);
+            }
+            Py_XDECREF(json_module);
+        }
+        Py_XDECREF(options_str);
     }
-
 
     /* Call the method using PyObject_VectorcallDict */
     pyllm_response = PyObject_VectorcallDict(pyllm_prompt_method, args, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET,
-                                             options_dict);
+                                             kwoptions);
     if (!pyllm_response) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'prompt' method\n");
@@ -270,8 +287,8 @@ text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     char *append = "\0";
 
     text *result = DatumGetTextPP(DirectFunctionCall2(repeat,
-        PointerGetDatum(cstring_to_text(prompt)),
-        Int32GetDatum(n)
+                                                      PointerGetDatum(cstring_to_text(prompt)),
+                                                      Int32GetDatum(n)
     ));
 
     return result;
@@ -329,8 +346,8 @@ llm_generate(PG_FUNCTION_ARGS) {
         if (!result) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                        errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
-                            model_name)));
+                            errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
+                                   model_name)));
         }
     }
 
@@ -348,18 +365,18 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
 
     if (model) {
         result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate
+                jb,
+                model,
+                jsonb_transform_llm_generate
         );
     } else {
         model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
         model->name = model_name;
 
         result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate_pyllm
+                jb,
+                model,
+                jsonb_transform_llm_generate_pyllm
         );
 
         pfree(model);
@@ -369,7 +386,7 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
         if (model == NULL) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                        errmsg("pgllm: model %s is not supported\n", model_name)));
+                            errmsg("pgllm: model %s is not supported\n", model_name)));
         }
     }
 
@@ -383,16 +400,34 @@ Datum jsonb_llm_embed(PG_FUNCTION_ARGS) {
     PG_RETURN_JSONB_P(PG_GETARG_JSONB_P_COPY(0));
 }
 
+char *jsonb_to_cstring(Jsonb *jsonb) {
+    if (jsonb == NULL) {
+        return NULL;
+    }
+
+    // Convert Jsonb to text datum
+    Datum jsonb_datum = JsonbPGetDatum(jsonb);
+    Datum json_text_datum = DirectFunctionCall1(jsonb_out, jsonb_datum);
+
+    // Extract char* from text datum
+    char *json_cstring = TextDatumGetCString(json_text_datum);
+
+    return json_cstring;
+}
+
 PG_FUNCTION_INFO_V1(myjsonb_get);
 
 Datum myjsonb_get(PG_FUNCTION_ARGS) {
     Jsonb *jb = PG_GETARG_JSONB_P(0);
     text *key = PG_GETARG_TEXT_PP(1);
 
-    Datum datumRes = DirectFunctionCall2(jsonb_object_field,
-                                         JsonbPGetDatum(jb),
-                                         PointerGetDatum(key)
-    );
+//    Datum datumRes = DirectFunctionCall2(jsonb_object_field,
+//                                         JsonbPGetDatum(jb),
+//                                         PointerGetDatum(key)
+//    );
 
-    PG_RETURN_DATUM(datumRes);
+    char *out;
+
+
+    PG_RETURN_TEXT_P(cstring_to_text(out));
 }

@@ -267,10 +267,13 @@ llm_generate(PG_FUNCTION_ARGS) {
     char *prompt = text_to_cstring(PG_GETARG_TEXT_PP(0));
     int32 prompt_len = strlen(prompt);
     char *model_name = text_to_cstring(PG_GETARG_TEXT_PP(1));
-    Jsonb *params = NULL; //PG_GETARG_JSONB_P(2);
+    Jsonb *params = NULL;
     LlmModelCtxt *modelCtxt = NULL;
 
     text *result = NULL;
+
+    if (!PG_ARGISNULL(2))
+        params = PG_GETARG_JSONB_P(2);
 
     /* search for model in the catalog */
     modelCtxt = search_models_catalog(model_name);

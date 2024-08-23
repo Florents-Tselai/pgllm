@@ -20,4 +20,10 @@ LANGUAGE sql;
 --
 --
 
-select is_valid_markov(llm_generate('hello there', 'markov'), 'hello there');
+\set prompt 'The quick brown fox jumps over the lazy dog'
+\set model 'markov'
+
+-- Execute the query and store the result in a variable
+SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
+
+select is_valid_markov(:'gen_result', :'prompt');

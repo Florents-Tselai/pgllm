@@ -29,18 +29,19 @@ void _PG_fini(void) {
  * 4. response_txt = response.text()
  *
  */
-text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Jsonb *params);
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream, Jsonb *options);
 
-text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Jsonb *params) {
+text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, char *system, bool stream, Jsonb *options) {
     PyObject *pyllm_module = NULL,
-            *pyllm_model = NULL,
-            *pyllm_get_model_func = NULL,
-            *pyllm_prompt_func = NULL,
+            *pyllm_model_name = NULL,
+            *pyllm_system = NULL,
+            *pyllm_stream = NULL,
             *pyllm_response = NULL,
-            *pyllm_response_text_func = NULL,
             *pyllm_response_txt = NULL;
 
+
     const char *result = NULL;
+
 
     /* 1. import llm */
     pyllm_module = PyImport_ImportModule("llm");
@@ -50,63 +51,37 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Js
         return NULL;
     }
 
-    /* 2. py_model = llm.get_model() */
-    pyllm_get_model_func = PyObject_GetAttrString(pyllm_module, "get_model");
-    if (!pyllm_get_model_func || !PyCallable_Check(pyllm_get_model_func)) {
-        PyErr_Print();
-        fprintf(stderr, "Failed to get 'get_model' function\n");
-        Py_XDECREF(pyllm_module);
-        return NULL;
-    }
 
-    pyllm_model = PyObject_CallFunction(pyllm_get_model_func, "s", pyllm_model);
-    Py_XDECREF(pyllm_get_model_func);
-    if (!pyllm_model) {
+    /* 2. py_model = llm.get_model() */
+    pyllm_model_name = PyObject_CallMethod(pyllm_module, "get_model", "s", model);
+    if (!pyllm_model_name) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'get_model' function\n");
-        Py_XDECREF(pyllm_module);
         return NULL;
     }
 
-    /* 3. response = py_model.prompt(<prompt cstring>) */
-    pyllm_prompt_func = PyObject_GetAttrString(pyllm_model, "prompt");
-    if (!pyllm_prompt_func || !PyCallable_Check(pyllm_prompt_func)) {
-        PyErr_Print();
-        fprintf(stderr, "Failed to get 'prompt' method\n");
-        Py_XDECREF(pyllm_model);
-        Py_XDECREF(pyllm_module);
-        return NULL;
-    }
+    /* 3. response = py_model.prompt(<prompt cstring>)
+     *
+     * prompt( self, prompt: Optional[str], system: Optional[str] = None, stream: bool = True, **options
+     * */
+    pyllm_system = system ? PyUnicode_FromString(system) : Py_None;
+    Py_XINCREF(pyllm_system);  // Py_None should not be decremented
 
-    pyllm_response = PyObject_CallFunction(pyllm_prompt_func, "s", prompt);
-    Py_XDECREF(pyllm_prompt_func); // Release reference after calling
+    pyllm_stream = PyBool_FromLong(stream ? 1 : 0);
+
+    pyllm_response = PyObject_CallMethod(pyllm_model_name, "prompt", "sOO", prompt, pyllm_system, PyBool_FromLong(stream), pyllm_stream);
     if (!pyllm_response) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'prompt' method\n");
-        Py_XDECREF(pyllm_model);
-        Py_XDECREF(pyllm_module);
         return NULL;
     }
 
     /* 4. response_txt = response.text() */
-    pyllm_response_text_func = PyObject_GetAttrString(pyllm_response, "text");
-    if (!pyllm_response_text_func || !PyCallable_Check(pyllm_response_text_func)) {
-        PyErr_Print();
-        fprintf(stderr, "Failed to get 'text' method\n");
-        Py_XDECREF(pyllm_response);
-        Py_XDECREF(pyllm_model);
-        Py_XDECREF(pyllm_module);
-        return NULL;
-    }
 
-    pyllm_response_txt = PyObject_CallObject(pyllm_response_text_func, NULL);
-    Py_XDECREF(pyllm_response_text_func);
+    pyllm_response_txt = PyObject_CallMethod(pyllm_response, "text", NULL);
     if (!pyllm_response_txt) {
         PyErr_Print();
         fprintf(stderr, "Failed to call 'text' method\n");
-        Py_XDECREF(pyllm_response);
-        Py_XDECREF(pyllm_model);
-        Py_XDECREF(pyllm_module);
         return NULL;
     }
 
@@ -114,15 +89,12 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, Js
     if (!result) {
         PyErr_Print();
         fprintf(stderr, "Failed to convert result to string\n");
-        Py_XDECREF(pyllm_response);
-        Py_XDECREF(pyllm_model);
-        Py_XDECREF(pyllm_module);
         return NULL;
     }
 
     /* Cleanup */
     Py_XDECREF(pyllm_response);
-    Py_XDECREF(pyllm_model);
+    Py_XDECREF(pyllm_model_name);
     Py_XDECREF(pyllm_module);
 
     return cstring_to_text(result);
@@ -133,7 +105,7 @@ PG_FUNCTION_INFO_V1(pycall_model);
 Datum pycall_model(PG_FUNCTION_ARGS) {
     char *prompt = text_to_cstring(PG_GETARG_TEXT_P(0));
     char *model = text_to_cstring(PG_GETARG_TEXT_P(1));
-    text *result = python_llm_generate_internal(prompt, strlen(prompt), model, NULL);
+    text *result = python_llm_generate_internal(prompt, strlen(prompt), model, "", 0, NULL);
 
     PG_RETURN_TEXT_P(result);
 }
@@ -254,7 +226,7 @@ static text *jsonb_transform_llm_generate_pyllm(void *ctxt, char *prompt, int pr
     text *result;
     LlmModelCtxt *modelCtxt = (LlmModelCtxt *) ctxt;
 
-    result = python_llm_generate_internal(prompt, prompt_len, modelCtxt->name, modelCtxt->params);
+    result = python_llm_generate_internal(prompt, prompt_len, modelCtxt->name, "", 0, modelCtxt->params);
 
     return result;
 }
@@ -286,7 +258,7 @@ llm_generate(PG_FUNCTION_ARGS) {
         modelCtxt = (LlmModelCtxt *) palloc0(sizeof(LlmModelCtxt));
         modelCtxt->name = model_name;
         modelCtxt->params = params;
-        result = python_llm_generate_internal(prompt, prompt_len, model_name, params);
+        result = python_llm_generate_internal(prompt, prompt_len, model_name, "", 0,  params);
 
         if (!result) {
             ereport(ERROR,

@@ -1,2 +1,3 @@
 llm-markov
+llm-gpt4all
 llm-embed-hazo

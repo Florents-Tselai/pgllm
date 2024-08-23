@@ -48,3 +48,13 @@ SELECT llm_generate(:'prompt', :'model', :'params') AS gen_result \gset
 select is_valid_markov(:'gen_result', :'prompt');
 select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME: this returns length + 1 (probably whitespace)
 -- END TEST CASE
+
+--
+--
+--
+
+-- BEGIN TEST CASE:gpt4all with params
+\set model 'all-MiniLM-L6-v2-f16'
+\set params '{"max_tokens": 20}'
+SELECT length(llm_generate(:'prompt', :'model', :'params'));
+-- END TEST CASE

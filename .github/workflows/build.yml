@@ -42,7 +42,9 @@ jobs:
         run: |
           mkdir -p $HOME/local
           cd postgresql-${{ matrix.postgres-version }}
-          CC=/usr/bin/gcc ./configure --prefix=$HOME/local
+          export CC=/usr/bin/gcc
+          export PYTHON="$pythonLocation"/bin/python3
+          ./configure --prefix=$HOME/local --with-python PYTHON="$PYTHON"
           make -j
           make install
 

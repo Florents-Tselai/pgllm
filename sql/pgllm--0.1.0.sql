@@ -3,6 +3,11 @@ AS
 'MODULE_PATHNAME'
     LANGUAGE C;
 
+CREATE FUNCTION llm_embed(text, text, jsonb default '{}') RETURNS float8[]
+AS
+'MODULE_PATHNAME'
+    LANGUAGE C;
+
 CREATE FUNCTION jsonb_llm_generate(jsonb, text, jsonb default null) RETURNS jsonb
 AS
 'MODULE_PATHNAME'

@@ -52,3 +52,4 @@ select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME
 --
 --
 --
+select llm_embed('hello world', 'hazo', '{}');

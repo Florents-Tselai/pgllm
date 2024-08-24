@@ -1,11 +1,35 @@
 #include "Python.h"
 
 #include "postgres.h"
+
+#include <math.h>
+
+#include "catalog/pg_type.h"
+#include "common/shortest_dec.h"
+#include "fmgr.h"
+#include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
+#include "port.h"                /* for strtof() */
+#include "utils/array.h"
+#include "utils/builtins.h"
+#include "utils/float.h"
 #include "utils/jsonb.h"
 #include "utils/jsonfuncs.h"
-#include "utils/builtins.h"
+
+#include "utils/lsyscache.h"
+#include "utils/numeric.h"
 #include "pgllm.h"
-#include "fmgr.h"
+
+#if PG_VERSION_NUM >= 160000
+
+#include "varatt.h"
+
+#endif
+
+#if PG_VERSION_NUM < 130000
+#define TYPALIGN_DOUBLE 'd'
+#define TYPALIGN_INT 'i'
+#endif
 
 
 PG_MODULE_MAGIC;
@@ -171,8 +195,8 @@ text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     char *append = "\0";
 
     text *result = DatumGetTextPP(DirectFunctionCall2(repeat,
-        PointerGetDatum(cstring_to_text(prompt)),
-        Int32GetDatum(n)
+                                                      PointerGetDatum(cstring_to_text(prompt)),
+                                                      Int32GetDatum(n)
     ));
 
     return result;
@@ -230,8 +254,8 @@ llm_generate(PG_FUNCTION_ARGS) {
         if (!result) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                        errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
-                            model_name)));
+                            errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
+                                   model_name)));
         }
     }
 
@@ -239,6 +263,29 @@ llm_generate(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(jsonb_llm_generate);
+
+PG_FUNCTION_INFO_V1(llm_embed);
+
+Datum
+llm_embed(PG_FUNCTION_ARGS) {
+    text *content = PG_GETARG_TEXT_PP(0);
+    text *model = PG_GETARG_TEXT_PP(1);
+    Jsonb *params = PG_GETARG_JSONB_P(2);
+    Datum *datums;
+    ArrayType *result;
+    int n = VARSIZE_ANY_EXHDR(content);
+
+    datums = (Datum *) palloc(sizeof(Datum) * n);
+    for (int i = 0; i < n; i++)
+        datums[i] = Float8GetDatum(0.0);
+
+    result = construct_array(datums, n, FLOAT8OID, sizeof(float8), true, TYPALIGN_INT);
+
+    pfree(datums);
+
+    PG_RETURN_POINTER(result);
+
+}
 
 Datum
 jsonb_llm_generate(PG_FUNCTION_ARGS) {
@@ -249,18 +296,18 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
 
     if (model) {
         result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate
+                jb,
+                model,
+                jsonb_transform_llm_generate
         );
     } else {
         model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
         model->name = model_name;
 
         result = transform_jsonb_string_values(
-            jb,
-            model,
-            jsonb_transform_llm_generate_pyllm
+                jb,
+                model,
+                jsonb_transform_llm_generate_pyllm
         );
 
         pfree(model);
@@ -270,7 +317,7 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
         if (model == NULL) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                        errmsg("pgllm: model %s is not supported\n", model_name)));
+                            errmsg("pgllm: model %s is not supported\n", model_name)));
         }
     }
 

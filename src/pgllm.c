@@ -20,15 +20,6 @@ void _PG_fini(void) {
     Py_Finalize();
 }
 
-/* Helper function to convert C string to Python Unicode string */
-static PyObject *to_py_unicode(const char *c_str) {
-    return PyUnicode_FromString(c_str);
-}
-
-/* Helper function to convert C boolean to Python boolean */
-static PyObject *to_py_bool(bool value) {
-    return PyBool_FromLong(value ? 1 : 0);
-}
 
 /*
  * A C-way to basically call
@@ -83,14 +74,7 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
      * */
     pyllm_system = system ? PyUnicode_FromString(system) : Py_None;
     Py_XINCREF(pyllm_system); // Py_None should not be decremented
-    pyllm_stream = PyBool_FromLong(stream ? 1 : 0);
-
-    // pyllm_response = PyObject_CallMethod(pyllm_model_name, "prompt", "sOO", prompt, pyllm_system, PyBool_FromLong(stream), pyllm_stream);
-    // if (!pyllm_response) {
-    //     PyErr_Print();
-    //     fprintf(stderr, "Failed to call 'prompt' method\n");
-    //     return NULL;
-    // }
+    pyllm_stream = PyBool_FromLong(stream);
 
     /* Retrieve the 'prompt' method */
     pyllm_prompt_method = PyObject_GetAttrString(pyllm_model_name, "prompt");
@@ -103,7 +87,7 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
     }
 
     /* Create an array of arguments */
-    PyObject *args[3] = {to_py_unicode(prompt), pyllm_system, pyllm_stream};
+    PyObject *args[3] = {PyUnicode_FromString(prompt), pyllm_system, pyllm_stream};
 
     kwoptions = PyDict_New();
     if (!kwoptions) {
@@ -182,113 +166,13 @@ text *python_llm_generate_internal(char *prompt, int prompt_len, char *model, ch
     return cstring_to_text(result);
 }
 
-PG_FUNCTION_INFO_V1(pycall_model);
-
-Datum pycall_model(PG_FUNCTION_ARGS) {
-    char *prompt = text_to_cstring(PG_GETARG_TEXT_P(0));
-    char *model = text_to_cstring(PG_GETARG_TEXT_P(1));
-    text *result = python_llm_generate_internal(prompt, strlen(prompt), model, "", 0, NULL);
-
-    PG_RETURN_TEXT_P(result);
-}
-
-PG_FUNCTION_INFO_V1(pyupper);
-
-Datum
-pyupper(PG_FUNCTION_ARGS) {
-    PyObject *py_str = NULL, *py_upper_str = NULL;
-    char *str = text_to_cstring(PG_GETARG_TEXT_P(0));
-    const char *upper_str = NULL;
-    int len;
-
-
-    /*
-     * Create a Python string from the C string.
-     */
-    py_str = PyUnicode_FromString(str);
-    if (!py_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to convert C string to Python string");
-    }
-
-    /*
-     * Call the upper() method on the Python string.
-     */
-    py_upper_str = PyObject_CallMethod(py_str, "upper", NULL);
-    if (!py_upper_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to call Python upper() method");
-    }
-
-    /*
-     * Convert the resulting Python string back to a C string.
-     */
-    upper_str = PyUnicode_AsUTF8(py_upper_str);
-    if (!upper_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to convert Python string to C string");
-    }
-
-    /*
-     * Create a new PostgreSQL text object from the uppercase C string.
-     */
-    len = strlen(upper_str);
-    text *new_t = (text *) palloc(len + VARHDRSZ);
-    SET_VARSIZE(new_t, len + VARHDRSZ);
-    memcpy(VARDATA(new_t), upper_str, len);
-
-    /*
-     * Clean up Python objects and finalize the interpreter.
-     */
-    Py_XDECREF(py_upper_str);
-    Py_XDECREF(py_str);
-
-    pfree(str);
-
-    PG_RETURN_TEXT_P(new_t);
-}
-
-text *impl_pyupper(void *params, char *prompt, int prompt_len) {
-    PyObject *py_str = NULL, *py_upper_str = NULL;
-    const char *upper_str = NULL;
-    text *result = NULL;
-
-    py_str = PyUnicode_FromString(prompt);
-    if (!py_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to convert C string to Python string");
-    }
-
-    /* Call the upper() method on the Python string. */
-    py_upper_str = PyObject_CallMethod(py_str, "upper", NULL);
-    if (!py_upper_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to call Python upper() method");
-    }
-
-    /* Convert the resulting Python string back to a C string. */
-    upper_str = PyUnicode_AsUTF8(py_upper_str);
-    if (!upper_str) {
-        PyErr_Print();
-        elog(ERROR, "Failed to convert Python string to C string");
-    }
-
-    result = cstring_to_text(upper_str);
-
-    /* Clean up Python objects */
-    Py_XDECREF(py_upper_str);
-    Py_XDECREF(py_str);
-
-    return result;
-}
-
 text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     int n = 3;
     char *append = "\0";
 
     text *result = DatumGetTextPP(DirectFunctionCall2(repeat,
-                                                      PointerGetDatum(cstring_to_text(prompt)),
-                                                      Int32GetDatum(n)
+        PointerGetDatum(cstring_to_text(prompt)),
+        Int32GetDatum(n)
     ));
 
     return result;
@@ -346,8 +230,8 @@ llm_generate(PG_FUNCTION_ARGS) {
         if (!result) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                            errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
-                                   model_name)));
+                        errmsg("pgllm: something went wrong with Python LLM. Maybe %s is not supported\n",
+                            model_name)));
         }
     }
 
@@ -365,18 +249,18 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
 
     if (model) {
         result = transform_jsonb_string_values(
-                jb,
-                model,
-                jsonb_transform_llm_generate
+            jb,
+            model,
+            jsonb_transform_llm_generate
         );
     } else {
         model = (LlmModelCtxt *) palloc(sizeof(LlmModelCtxt));
         model->name = model_name;
 
         result = transform_jsonb_string_values(
-                jb,
-                model,
-                jsonb_transform_llm_generate_pyllm
+            jb,
+            model,
+            jsonb_transform_llm_generate_pyllm
         );
 
         pfree(model);
@@ -386,7 +270,7 @@ jsonb_llm_generate(PG_FUNCTION_ARGS) {
         if (model == NULL) {
             ereport(ERROR,
                     (errcode(ERRCODE_DATA_EXCEPTION),
-                            errmsg("pgllm: model %s is not supported\n", model_name)));
+                        errmsg("pgllm: model %s is not supported\n", model_name)));
         }
     }
 
@@ -398,36 +282,4 @@ PG_FUNCTION_INFO_V1(jsonb_llm_embed);
 
 Datum jsonb_llm_embed(PG_FUNCTION_ARGS) {
     PG_RETURN_JSONB_P(PG_GETARG_JSONB_P_COPY(0));
-}
-
-char *jsonb_to_cstring(Jsonb *jsonb) {
-    if (jsonb == NULL) {
-        return NULL;
-    }
-
-    // Convert Jsonb to text datum
-    Datum jsonb_datum = JsonbPGetDatum(jsonb);
-    Datum json_text_datum = DirectFunctionCall1(jsonb_out, jsonb_datum);
-
-    // Extract char* from text datum
-    char *json_cstring = TextDatumGetCString(json_text_datum);
-
-    return json_cstring;
-}
-
-PG_FUNCTION_INFO_V1(myjsonb_get);
-
-Datum myjsonb_get(PG_FUNCTION_ARGS) {
-    Jsonb *jb = PG_GETARG_JSONB_P(0);
-    text *key = PG_GETARG_TEXT_PP(1);
-
-//    Datum datumRes = DirectFunctionCall2(jsonb_object_field,
-//                                         JsonbPGetDatum(jb),
-//                                         PointerGetDatum(key)
-//    );
-
-    char *out;
-
-
-    PG_RETURN_TEXT_P(cstring_to_text(out));
 }

@@ -24,8 +24,8 @@ typedef struct {
     } func;
 
     void (*validate_params)(Jsonb *params);
-    Jsonb *params;
 
+    Jsonb *params;
 } LlmModelCtxt;
 
 /* Every string value in the jsonb is considered a prompt  */
@@ -37,8 +37,7 @@ text *impl_pyupper(void *params, char *prompt, int prompt_len);
 
 
 static LlmModelCtxt PGLLM_MODELS_CATALOG[] = {
-    {"repeat-3", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL},
-    {"pyupper", NULL, genModel, {.generative = {.generate = impl_pyupper}},                NULL, NULL}
+    {"repeat-3", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL}
 };
 
 

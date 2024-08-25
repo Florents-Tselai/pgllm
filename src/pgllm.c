@@ -273,18 +273,89 @@ llm_embed(PG_FUNCTION_ARGS) {
     Jsonb *params = PG_GETARG_JSONB_P(2);
     Datum *datums;
     ArrayType *result;
-    int n = VARSIZE_ANY_EXHDR(content);
+    Py_ssize_t ndims;
 
-    datums = (Datum *) palloc(sizeof(Datum) * n);
-    for (int i = 0; i < n; i++)
-        datums[i] = Float8GetDatum(0.0);
+    /*
+     * Workflow:
+     * 1. Import the llm module
+     * 2. Retrieve the embedding model using the model name
+     * 3. Generate embeddings for the provided content
+     */
 
-    result = construct_array(datums, n, FLOAT8OID, sizeof(float8), true, TYPALIGN_INT);
+    PyObject *llm_module = NULL;
+    PyObject *embed_model = NULL;
+    PyObject *embedding_list = NULL;
 
+    /* 1. Import the llm module */
+    llm_module = PyImport_ImportModule("llm");
+    if (!llm_module) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to load 'llm' module\n");
+        PG_RETURN_NULL();
+    }
+
+    /* 2. Retrieve the embedding model */
+    embed_model = PyObject_CallMethod(llm_module, "get_embedding_model", "s", text_to_cstring(model));
+    if (!embed_model) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to call 'get_embedding_model' function\n");
+        Py_XDECREF(llm_module);  /* Clean up in case of failure */
+        PG_RETURN_NULL();
+    }
+
+    /* 3. Generate the embedding list */
+    embedding_list = PyObject_CallMethod(embed_model, "embed", "s", text_to_cstring(content));
+    if (!embedding_list) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to call 'embed' method\n");
+        Py_XDECREF(llm_module);
+        Py_XDECREF(embed_model);
+        PG_RETURN_NULL();
+    }
+
+    /* Determine the size of the embedding list */
+    ndims = PyList_Size(embedding_list);
+    if (ndims < 0) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to retrieve embedding list size\n");
+        Py_XDECREF(llm_module);
+        Py_XDECREF(embed_model);
+        Py_XDECREF(embedding_list);
+        PG_RETURN_NULL();
+    }
+
+    /* Allocate memory for the result array */
+    datums = (Datum *) palloc(sizeof(Datum) * ndims);
+
+    /* Fill the result array with embeddings */
+    for (Py_ssize_t i = 0; i < ndims; i++) {
+        PyObject *item = PyList_GetItem(embedding_list, i);
+        if (!item) {
+            PyErr_Print();
+            fprintf(stderr, "Failed to retrieve item from embedding list\n");
+            pfree(datums);
+            Py_XDECREF(llm_module);
+            Py_XDECREF(embed_model);
+            Py_XDECREF(embedding_list);
+            PG_RETURN_NULL();
+        }
+
+        datums[i] = Float8GetDatum(PyFloat_AsDouble(item));
+    }
+
+    /* Construct the PostgreSQL array result */
+    result = construct_array(datums, ndims, FLOAT8OID, sizeof(float8), true, TYPALIGN_INT);
+
+    /* Clean up Python objects */
+    Py_XDECREF(llm_module);
+    Py_XDECREF(embed_model);
+    Py_XDECREF(embedding_list);
+
+    /* Free the allocated memory for datums */
     pfree(datums);
 
+    /* Return the result array */
     PG_RETURN_POINTER(result);
-
 }
 
 Datum

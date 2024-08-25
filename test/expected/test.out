@@ -65,8 +65,14 @@ select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME
 --
 --
 select llm_embed('hello world', 'hazo', '{}');
-        llm_embed        
--------------------------
- {0,0,0,0,0,0,0,0,0,0,0}
+             llm_embed             
+-----------------------------------
+ {5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+(1 row)
+
+select llm_embed(:'prompt', 'hazo', '{}');
+             llm_embed             
+-----------------------------------
+ {3,5,5,3,5,4,3,4,3,0,0,0,0,0,0,0}
 (1 row)
 

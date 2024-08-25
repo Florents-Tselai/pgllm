@@ -55,10 +55,10 @@ select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME
 select llm_embed('hello world', 'hazo');
 select llm_embed(:'prompt', 'hazo');
 
-select llm_embed('hello world', 'jina-embeddings-v2-small-en');
-select llm_embed(:'prompt', 'jina-embeddings-v2-small-en');
+select array_length(lm_embed('hello world', 'jina-embeddings-v2-small-en'), 1);
+select array_length(llm_embed(:'prompt', 'jina-embeddings-v2-small-en'), 1);
 
-select llm_embed('hello world', 'onnx-bge-micro');
-select llm_embed(:'prompt', 'onnx-bge-micro');
+select array_length(llm_embed('hello world', 'onnx-bge-micro'), 1);
+select array_length(llm_embed(:'prompt', 'onnx-bge-micro'), 1);
 
 

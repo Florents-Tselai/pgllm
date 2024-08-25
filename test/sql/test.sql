@@ -58,4 +58,7 @@ select llm_embed(:'prompt', 'hazo');
 select llm_embed('hello world', 'jina-embeddings-v2-small-en');
 select llm_embed(:'prompt', 'jina-embeddings-v2-small-en');
 
+select llm_embed('hello world', 'onnx-bge-micro');
+select llm_embed(:'prompt', 'onnx-bge-micro');
+
 

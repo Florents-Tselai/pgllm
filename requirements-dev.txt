@@ -1,2 +1,3 @@
 llm-markov
 llm-embed-hazo
+llm-sentence-transformers

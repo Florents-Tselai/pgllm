@@ -73,7 +73,7 @@ jobs:
           $PGBIN/initdb $PGDATA
           $PGBIN/pg_ctl --pgdata $PGDATA start
 
-          make installcheck
+          make installcheck || (cat logfile regression.diffs && /bin/false)
 
 #      - name: 'Stop PostgreSQL'
 #        run: |

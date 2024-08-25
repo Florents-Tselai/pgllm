@@ -57,6 +57,11 @@ jobs:
 
       - run: pip install -r requirements-dev.txt
 
+      - name: 'trigger model downloads'
+        run: |
+          "$pythonLocation"/bin/python3 -m llm embed -m jina-embeddings-v2-small-en -c "hello"
+          "$pythonLocation"/bin/python3 -m llm embed -m onnx-bge-micro -c "hello"
+
       - name: 'build & test'
         run: |
           export PG_CONFIG=$HOME/local/bin/pg_config 

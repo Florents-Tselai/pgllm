@@ -264,10 +264,10 @@ llm_generate(PG_FUNCTION_ARGS) {
 
 PG_FUNCTION_INFO_V1(jsonb_llm_generate);
 
-PG_FUNCTION_INFO_V1(llm_embed);
+PG_FUNCTION_INFO_V1(llm_embed_text);
 
 Datum
-llm_embed(PG_FUNCTION_ARGS) {
+llm_embed_text(PG_FUNCTION_ARGS) {
     text *content = PG_GETARG_TEXT_PP(0);
     text *model = PG_GETARG_TEXT_PP(1);
     Jsonb *params = PG_GETARG_JSONB_P(2);
@@ -357,6 +357,14 @@ llm_embed(PG_FUNCTION_ARGS) {
     /* Return the result array */
     PG_RETURN_POINTER(result);
 }
+
+PG_FUNCTION_INFO_V1(llm_embed_binary);
+
+Datum
+llm_embed_binary(PG_FUNCTION_ARGS) {
+
+}
+
 
 Datum
 jsonb_llm_generate(PG_FUNCTION_ARGS) {

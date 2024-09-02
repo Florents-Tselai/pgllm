@@ -1,2 +1,4 @@
 llm-markov
 llm-embed-hazo
+llm-embed-jina
+llm-embed-onnx

@@ -1,27 +1,19 @@
-CREATE FUNCTION add_one(integer) RETURNS integer
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
+CREATE FUNCTION llm_generate(text, text, jsonb default null) RETURNS text
+AS
+'MODULE_PATHNAME'
+    LANGUAGE C;
 
-CREATE FUNCTION copytext(text) RETURNS text
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
+CREATE FUNCTION llm_embed(text, text, jsonb default '{}') RETURNS float8[]
+AS
+'MODULE_PATHNAME'
+    LANGUAGE C;
 
-CREATE FUNCTION concat_text(text, text) RETURNS text
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
-
-CREATE FUNCTION pgupper(text) RETURNS text
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
-
-CREATE FUNCTION pyupper(text) RETURNS text
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
-
-CREATE FUNCTION jsonb_llm_generate(jsonb, text) RETURNS jsonb
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
+CREATE FUNCTION jsonb_llm_generate(jsonb, text, jsonb default null) RETURNS jsonb
+AS
+'MODULE_PATHNAME'
+    LANGUAGE C;
 
 CREATE FUNCTION jsonb_llm_embed(jsonb, text) RETURNS jsonb
-AS 'MODULE_PATHNAME'
-     LANGUAGE C STRICT;
+AS
+'MODULE_PATHNAME'
+    LANGUAGE C;

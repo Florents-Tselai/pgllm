@@ -1,42 +1,102 @@
-select add_one(1);
- add_one 
----------
-       2
-(1 row)
-
-select copytext('hello world');
-  copytext   
--------------
- hello world
-(1 row)
-
-select concat_text('pa', 'sok');
- concat_text 
--------------
- pasok
-(1 row)
-
-select pgupper('hello world');
-   pgupper   
--------------
- HELLO WORLD
-(1 row)
-
-select pyupper('hello world');
-   pyupper   
--------------
- HELLO WORLD
-(1 row)
-
-select jsonb_llm_generate('{"message": "hello", "k1": "v1", "k2": "v2", "k3": 3}'::jsonb, 'model');
-                           jsonb_llm_generate                            
--------------------------------------------------------------------------
- {"k1": "V1V1V1", "k2": "V2V2V2", "k3": 3, "message": "HELLOHELLOHELLO"}
-(1 row)
-
-select jsonb_llm_embed('"hello"'::jsonb, 'model');
- jsonb_llm_embed 
+-- testing a simple model coded in C and store in the static catalog
+select llm_generate('hello', 'repeat-3');
+  llm_generate   
 -----------------
- "hello"
+ hellohellohello
+(1 row)
+
+--
+--
+--
+CREATE OR REPLACE FUNCTION is_valid_markov(generated_ text, prompt text, length_ int default null)
+RETURNS boolean AS $$
+BEGIN
+    -- Optional: Check the length of the generated text
+    IF length_ IS NOT NULL THEN
+        IF length(generated) <> length_ THEN
+            RETURN false;
+END IF;
+END IF;
+
+    -- Check if all words in 'generated' are contained in 'prompt'
+RETURN NOT EXISTS (
+    SELECT word
+    FROM unnest(regexp_split_to_array(lower(trim(generated_)), '\s+')) AS word
+    WHERE word <> ''
+      AND word NOT IN (
+        SELECT unnest(regexp_split_to_array(lower(trim(generated_)), '\s+'))
+    )
+);
+END;
+$$
+LANGUAGE plpgsql;
+--
+--
+--
+-- BEGIN TEST CASE: markov without parameters
+\set prompt 'The quick brown fox jumps over the lazy dog'
+\set model 'markov'
+--see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/llm_markov/__init__.py#L22
+\set params '{"length": 20, "delay": 0.2}'
+SELECT llm_generate(:'prompt', :'model') AS gen_result \gset
+select is_valid_markov(:'gen_result', :'prompt');
+ is_valid_markov 
+-----------------
+ t
+(1 row)
+
+-- END DEST CASE
+-- BEGIN TEST CASE: markov with params
+SELECT llm_generate(:'prompt', :'model', :'params') AS gen_result \gset
+select is_valid_markov(:'gen_result', :'prompt');
+ is_valid_markov 
+-----------------
+ t
+(1 row)
+
+select array_length(regexp_split_to_array(:'gen_result', '\s+'), 1) - 1; --FIXME: this returns length + 1 (probably whitespace)
+ ?column? 
+----------
+       20
+(1 row)
+
+-- END TEST CASE
+--
+--
+--
+select llm_embed('hello world', 'hazo');
+             llm_embed             
+-----------------------------------
+ {5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+(1 row)
+
+select llm_embed(:'prompt', 'hazo');
+             llm_embed             
+-----------------------------------
+ {3,5,5,3,5,4,3,4,3,0,0,0,0,0,0,0}
+(1 row)
+
+select array_length(llm_embed('hello world', 'jina-embeddings-v2-small-en'), 1);
+ array_length 
+--------------
+          512
+(1 row)
+
+select array_length(llm_embed(:'prompt', 'jina-embeddings-v2-small-en'), 1);
+ array_length 
+--------------
+          512
+(1 row)
+
+select array_length(llm_embed('hello world', 'onnx-bge-micro'), 1);
+ array_length 
+--------------
+          384
+(1 row)
+
+select array_length(llm_embed(:'prompt', 'onnx-bge-micro'), 1);
+ array_length 
+--------------
+          384
 (1 row)
 

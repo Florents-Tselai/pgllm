@@ -6,8 +6,10 @@ PYTHON_CONFIG = $(PYTHON)-config
 PG_CONFIG ?= pg_config
 
 EXTENSION = pgllm
+ΕΧΤVERSION = 0.1.0
 MODULE_big = $(EXTENSION)
-OBJS = $(EXTENSION).o
+OBJS = src/pgllm.o
+HEADERS = src/pgllm.h
 
 DATA = $(wildcard sql/*--*.sql)
 
@@ -21,3 +23,5 @@ SHLIB_LINK += -lpython$(PYVERSION)
 
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
+
+dev: clean all install installcheck

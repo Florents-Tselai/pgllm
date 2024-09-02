@@ -4,154 +4,74 @@
 [![Documentation Status](https://readthedocs.org/projects/pgllm/badge/?version=stable)](http://pgllm.tselai.com/en/latest/?badge=stable)
 [![Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/florentstselai/)
 [![Github Sponsors](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=pink)](https://github.com/sponsors/Florents-Tselai/)
-[![Build](https://github.com/Florents-Tselai/pgllm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3Abuild)
+[![Build](https://github.com/Florents-Tselai/pgllm/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3Abuild)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/pgllm/blob/main/LICENSE)
 
-**pgllm** is the easiest way to access LLMs from SQLite or DuckDB.
+**pgllm** brings LLMs to Postgres, by embedding the Python [llm](github.com/simonw/llm) library.
+
+## API
+
+* `llm_generate(input text, model text[, params jsonb]) → text`
+* `llm_embed(input text/bytea, model text[, params jsonb]) → float8[]`
+  
+## Features
+
+- **Text Generation:** Generate text based on input prompts using specified LLM models.
+- **Text/Binary Embedding:** Convert text into numerical embeddings for use in machine learning models or similarity searches.
+- **Customizable Parameters:** Pass additional parameters to the LLM models as JSONB for more flexible text generation and embedding.
+- **pgvector** integration
+- Support for [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
+
+## Installing Models
+
+You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation.
+
+Some dummy models 
+```shell
+python3 -m llm install llm-markov
+python3 -m llm install llm-embed-hazo
+```
+
+Some more sophisticated models that will download artifacts in the background, the first time they'll be used 
 
 ```shell
-pip install pgllm
-```
-
-## Prompts
-
-```bash
-cat <<EOF | tee >(sqlite3 prompts.sqlite3) | duckdb prompts.duckdb
-CREATE TABLE prompts ( p TEXT);
-INSERT INTO prompts VALUES('how are you?');
-INSERT INTO prompts VALUES('is this real life?');
-EOF
-```
-
-```shell
-llm install llm-gpt4all
-```
-
-```sql
-pgllm prompts.duckdb "select prompt(p, 'orca-mini-3b-gguf2-q4_0') from prompts"
-pgllm prompts.sqlite3 "select prompt(p, 'orca-2-7b') from prompts"
-```
-
-Behind the scenes, **pgllm** is based on the beautiful [llm](https://llm.datasette.io) library,
-so you can use any of its plugins:
-
-### Multiple Prompts
-
-With a single query, you can easily access get prompt 
-responses from different LLMs:
-
-```sql
-pgllm prompts.sqlite3 "
-        select p,
-        prompt(p, 'orca-2-7b'),
-        prompt(p, 'orca-mini-3b-gguf2-q4_0'),
-        embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
-        from prompts"
+python3 -m llm install llm-embed-jina
+python3 -m llm install llm-embed-onnx
 ```
 
 ## Embeddings
 
-```shell
-llm install llm-sentence-transformers
-llm sentence-transformers register all-MiniLM-L12-v2
-llm install llm-embed-hazo # dummy embedding model for demonstration purposes
+```sql
+select llm_embed('hello world', 'hazo');
+             llm_embed             
+-----------------------------------
+ {5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+(1 row)
 ```
+
+## Generation
 
 ```sql
-pgllm prompts.sqlite3 "select embed(p, 'sentence-transformers/all-MiniLM-L12-v2')"
+select llm_generate('hello world', 'markov');
+          llm_generate          
+--------------------------------
+ world hello world world hello ....
+(1 row)
 ```
 
-### `JSON` Embeddings Recursively
 
-If you have `JSON` columns, you can embed these object recursively.
-That is, an embedding vector of floats will replace each text occurrence in the object.
+### Model Parameteres
 
-```bash
-cat <<EOF | tee >(sqlite3 prompts.sqlite3) | duckdb prompts.duckdb
-CREATE TABLE people(d JSON);
-INSERT INTO people (d) VALUES 
-('{"name": "John Doe", "age": 30, "hobbies": ["reading", "biking"]}'),
-('{"name": "Jane Smith", "age": 25, "hobbies": ["painting", "traveling"]}')
-EOF
-```
-
-#### SQLite
+Can be passed as a `jsonb` argument. 
 
 ```sql
-pgllm prompts.sqlite3 "select json_embed(d, 'hazo') from people"
+select llm_generate('hello world', 'markov', '{"length": 20, "delay": 0.2}');
+                                                       llm_generate                                                       
+--------------------------------------------------------------------------------------------------------------------------
+ world world hello world hello world hello world world hello world world world world world world world world world hello 
+(1 row)
 ```
-
-*Output*
-        
-```
-('{"name": [4.0, 3.0,..., 0.0], "age": 30, "hobbies": [[7.0, 0.0,..., 0.0], [6.0, 0.0, ..., 0.0]]}',)
-('{"name": [4.0, 5.0, ,..., 0.0], "age": 25, "hobbies": [[8.0, 0.0,..., 0.0], [9.0, 0.0,..., 0.0]]}',)
-```
-
-#### DuckDB
-
-```sql
-pgllm prompts.duckdb "select json_embed(d, 'hazo') from people"
-```
-
-*Output*
-        
-```
-('{"name": [4.0, 3.0,..., 0.0], "age": 30, "hobbies": [[7.0, 0.0,..., 0.0], [6.0, 0.0, ..., 0.0]]}',)
-('{"name": [4.0, 5.0, ,..., 0.0], "age": 25, "hobbies": [[8.0, 0.0,..., 0.0], [9.0, 0.0,..., 0.0]]}',)
-```
-
-### Binary (`BLOB`) Embeddings
-
-```shell
-wget https://tselai.com/img/flo.jpg
-sqlite3 images.sqlite3 <<EOF
-CREATE TABLE images(name TEXT, type TEXT, img BLOB);
-INSERT INTO images(name,type,img) VALUES('flo','jpg',readfile('flo.jpg'));
-EOF
-```
-
-```shell
-llm install llm-clip
-```
-
-```sql
-pgllm images.sqlite3 "select embed(img, 'clip') from images"
-```
-
-## Interactive Shell
-
-If you don't provide an SQL query,
-you'll enter an interactive shell instead.
-
-```shell
-pgllm prompts.db
-```
-
-![til](./pgllm-demo.gif)
 
 ## Installation
 
-```bash
-pip install pgllm
-```
-
-## How
-
-**pgllm** relies on the following facts:
-
-* SQLite is bundled with the standard Python library (`import sqlite3`)
-* Python 3.12 ships with a [SQLite interactive shell](https://docs.python.org/3/library/sqlite3.html#command-line-interface)
-* one can create Python-written user-defined functions to be used in SQLite 
-  queries (see [create_function](https://github.com/simonw/llm))
-* [Simon Willison](https://github.com/simonw/) has gone through the process of 
-  creating the beautiful [llm](https://github.com/simonw/llm) Python 
-  library and CLI
-
-## Development
-
-```bash
-pip install -e '.[test]'
-pytest
-```
-
+See [build.yml](workflows/.github/build.yml)

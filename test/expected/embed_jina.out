@@ -4,3 +4,9 @@ select array_length(llm_embed('hello world', 'jina-embeddings-v2-small-en'), 1);
           512
 (1 row)
 
+select array_length(llm_embed('hello world', 'jina-embeddings-v2-base-en'), 1);
+ array_length 
+--------------
+          768
+(1 row)
+

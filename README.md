@@ -20,37 +20,10 @@
 - **Text/Binary Embedding:** Convert text into numerical embeddings for use in machine learning models or similarity searches.
 - **Customizable Parameters:** Pass additional parameters to the LLM models as JSONB for more flexible text generation and embedding.
 - **pgvector** integration.
-- Support for [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
+- Support multiple models via [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
 - Mozilla [llamafile](https://github.com/Mozilla-Ocho/llamafile) support.
 
-## Python [llm](https://llm.datasette.io/en/stable/plugins/directory.html) Plugins
-
-You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation.
-
-Some dummy models 
-```shell
-python3 -m llm install llm-markov
-python3 -m llm install llm-embed-hazo
-```
-
-Some more sophisticated models that will download artifacts in the background, the first time they'll be used 
-
-```shell
-python3 -m llm install llm-embed-jina
-python3 -m llm install llm-embed-onnx
-```
-
-## Embeddings
-
-```sql
-select llm_embed('hello world', 'hazo');
-             llm_embed             
------------------------------------
- {5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-(1 row)
-```
-
-## Generation
+## Usage
 
 ```sql
 select llm_generate('hello world', 'markov');
@@ -59,6 +32,20 @@ select llm_generate('hello world', 'markov');
  world hello world world hello ....
 (1 row)
 ```
+
+### Model Parameteres
+
+Can be passed as a `jsonb` argument. 
+
+```sql
+select llm_generate('hello world', 'markov', '{"length": 20, "delay": 0.2}');
+                                                       llm_generate                                                       
+--------------------------------------------------------------------------------------------------------------------------
+ world world hello world hello world hello world world hello world world world world world world world world world hello 
+(1 row)
+```
+
+## Local Models
 
 ### llamafile
 
@@ -105,17 +92,68 @@ SELECT llm_generate('3 neat characteristics of a pelican', 'llamafile')::jsonb
 (1 row)
 ```
 
-### Model Parameteres
+You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation.
 
-Can be passed as a `jsonb` argument. 
+Some dummy models 
+```shell
+python3 -m llm install llm-markov
+python3 -m llm install llm-embed-hazo
+```
+
+Some more sophisticated models that will download artifacts in the background, the first time they'll be used 
+
+## Remote APIs
+
+LLM plugins for [remote APIs](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis) are supported.
+
+Start by installing the model plugin you want
+```shell
+python3 -m llm install llm-mistral
+```
+
+And then use you can pass the API_KEY as a parameter.
+
+```shell
+select llm_generate('hello world', 'mistral', '{"mistral": "abc0123"}');
+```
+
+
+## Embeddings
+
+### JinaAI
+
+- [`jina-embeddings-v2-small-en`](https://huggingface.co/jinaai/jina-embeddings-v2-small-en): 33 million parameters.
+- [`jina-embeddings-v2-base-en`](https://huggingface.co/jinaai/jina-embeddings-v2-base-en): 137 million parameters.
+- [`jina-embeddings-v2-large-en`](https://huggingface.co/jinaai/jina-embeddings-v2-large-en): 435 million parameters - not yet released, but it will work once it has been released.
+
+```shell
+python3 -m llm install llm-embed-jina
+```
 
 ```sql
-select llm_generate('hello world', 'markov', '{"length": 20, "delay": 0.2}');
-                                                       llm_generate                                                       
---------------------------------------------------------------------------------------------------------------------------
- world world hello world hello world hello world world hello world world world world world world world world world hello 
-(1 row)
+select llm_embed('hello world', 'jina-embeddings-v2-small-en');
 ```
+
+### Onnx
+
+```
+onnx-bge-micro
+onnx-gte-tiny
+onnx-minilm-l6
+onnx-minilm-l12
+onnx-bge-small
+onnx-bge-base
+onnx-bge-large
+```
+
+```shell
+python3 -m llm install llm-embed-onnx
+```
+
+```sql
+select llm_embed('hello world', 'onnx-bge-micro');
+```
+
 
 ## Installation
 

@@ -21,6 +21,7 @@
 - **Customizable Parameters:** Pass additional parameters to the LLM models as JSONB for more flexible text generation and embedding.
 - **pgvector** integration
 - Support for [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
+- Mozilla [llamafile](https://github.com/Mozilla-Ocho/llamafile) support.
 
 ## Installing Models
 

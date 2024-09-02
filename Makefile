@@ -13,7 +13,7 @@ HEADERS = src/pgllm.h
 
 DATA = $(wildcard sql/*--*.sql)
 
-TESTS = $(wildcard test/sql/test.sql)
+TESTS = test/sql/setup.sql test/sql/test.sql
 
 ifdef WITH_LLAMAFILE
 TESTS += test/sql/llamafile.sql

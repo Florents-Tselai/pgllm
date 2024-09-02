@@ -1,5 +1,5 @@
 PYTHON ?= python3.11
-PYVERSION ?= 3.11
+PYVERSION ?= $(shell $(PYTHON) -c "from sysconfig import get_config_vars; print(get_config_vars().get('py_version_short'))")
 
 CC ?= /usr/bin/gcc
 PYTHON_CONFIG = $(PYTHON)-config

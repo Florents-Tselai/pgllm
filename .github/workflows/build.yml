@@ -57,12 +57,12 @@ jobs:
       - run: pip install -r requirements.txt
 
       - run: pip install -r requirements-dev.txt
-
-      - name: 'Install llamafile'
-        run : |
-          curl "https://huggingface.co/Mozilla/llava-v1.5-7b-llamafile/resolve/main/llava-v1.5-7b-q4.llamafile" -o llava-v1.5-7b-q4.llamafile
-          chmod +x llava-v1.5-7b-q4.llamafile
-          ./llava-v1.5-7b-q4.llamafile
+#
+#      - name: 'Install llamafile'
+#        run : |
+#          curl "https://huggingface.co/Mozilla/llava-v1.5-7b-llamafile/resolve/main/llava-v1.5-7b-q4.llamafile" -o llava-v1.5-7b-q4.llamafile
+#          chmod +x llava-v1.5-7b-q4.llamafile
+#          ./llava-v1.5-7b-q4.llamafile
 
       - name: 'build & test'
         run: |

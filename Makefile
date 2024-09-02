@@ -2,7 +2,7 @@ PYTHON ?= python3.11
 PYVERSION ?= $(shell $(PYTHON) -c "from sysconfig import get_config_vars; print(get_config_vars().get('py_version_short'))")
 
 CC ?= /usr/bin/gcc
-PYTHON_CONFIG = $(PYTHON)-config
+PYTHON_CONFIG ?= $(PYTHON)-config
 PG_CONFIG ?= pg_config
 
 EXTENSION = pgllm
@@ -27,8 +27,8 @@ endif
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))
 REGRESS_OPTS = --inputdir=test --load-extension=$(EXTENSION)
 
-PG_CFLAGS ?= $(shell $(PYTHON)-config --includes)
-PG_LDFLAGS ?= $(shell $(PYTHON)-config --ldflags)
+PG_CFLAGS ?= $(shell $(PYTHON_CONFIG) --includes)
+PG_LDFLAGS ?= $(shell $(PYTHON_CONFIG) --ldflags)
 SHLIB_LINK += -lpython$(PYVERSION)
 
 ifdef WITH_LLAMAFILE

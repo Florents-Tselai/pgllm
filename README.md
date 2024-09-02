@@ -199,4 +199,14 @@ select llm_embed('hello world', 'onnx-bge-micro');
 
 ## Installation
 
-See [build.yml](.github/workflows/build.yml)
+The crucial thing in the installation process is to be sure which `python3` Postgres uses.
+
+```shell
+git clone https://github.com/Florents-Tselai/pgllm.git
+cd pgllm
+
+# make sure that Python 3.XX minor versions match 
+make all PYTHON=/path/to/bin/python3.11 PYTHON_CONFIG=/path/to/python3.11-config
+make install
+make installcheck
+```

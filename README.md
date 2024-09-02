@@ -59,6 +59,50 @@ select llm_generate('hello world', 'markov');
 (1 row)
 ```
 
+### llamafile
+
+pgllm supports llamafile by using curl to query its web API.
+
+Install with `WITH_LLAMAFILE=1` flag
+
+<details>
+<summary>Start llamafile server</summary>
+
+1. Download [llava-v1.5-7b-q4.llamafile](https://huggingface.co/Mozilla/llava-v1.5-7b-llamafile/resolve/main/llava-v1.5-7b-q4.llamafile?download=true) (4.29 GB).
+
+2. Open your computer's terminal.
+
+3. If you're using macOS, Linux, or BSD, you'll need to grant permission
+for your computer to execute this new file. (You only need to do this
+once.)
+
+```sh
+chmod +x llava-v1.5-7b-q4.llamafile
+```
+
+4. If you're on Windows, rename the file by adding ".exe" on the end.
+
+5. Run the llamafile. e.g.:
+
+```sh
+./llava-v1.5-7b-q4.llamafile
+```
+
+6. Your browser should open automatically and display a chat interface.
+(If it doesn't, just open your browser and point it at http://localhost:8080)
+
+7. When you're done chatting, return to your terminal and hit
+`Control-C` to shut down llamafile.
+
+</details>
+
+```sql
+SELECT llm_generate('3 neat characteristics of a pelican', 'llamafile')::jsonb
+                                                                                                                                                                                                                                                                                                   llm_generate                                                                                                                                                                                                                                                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "chatcmpl-qLMCLi9ghpvobVxrwr83DOVVdvaMICef", "model": "LLaMA_CPP", "usage": {"total_tokens": 132, "prompt_tokens": 58, "completion_tokens": 74}, "object": "chat.completion", "choices": [{"index": 0, "message": {"role": "assistant", "content": "1. Pelicans have a large, broad beak that is adapted for catching fish.\n2. They have a pouch under their beak, which they use to hold their catch.\n3. Pelicans are known for their distinctive wading and fishing behavior, where they stand on one leg while waiting for fish to swim by.</s>"}, "finish_reason": "stop"}], "created": 1725269144}
+(1 row)
+```
 
 ### Model Parameteres
 

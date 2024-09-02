@@ -33,14 +33,18 @@ extern text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_
 
 text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len);
 
+#ifdef WITH_LLAMAFILE
 text *llamafile_generate_internal(void *params, char *prompt, int prompt_len);
+#endif
 
 text *impl_pyupper(void *params, char *prompt, int prompt_len);
 
 
 static LlmModelCtxt PGLLM_MODELS_CATALOG[] = {
-        {"repeat-3",  NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}},  NULL, NULL},
-        {"llamafile", NULL, genModel, {.generative = {.generate = llamafile_generate_internal}}, NULL, NULL}
+        {"repeat-3", NULL, genModel, {.generative = {.generate = repeat_n_generate_internal}}, NULL, NULL}
+#ifdef WITH_LLAMAFILE
+        ,{"llamafile", NULL, genModel, {.generative = {.generate = llamafile_generate_internal}}, NULL, NULL}
+#endif
 
 };
 

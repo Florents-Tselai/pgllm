@@ -13,7 +13,12 @@ HEADERS = src/pgllm.h
 
 DATA = $(wildcard sql/*--*.sql)
 
-TESTS = $(wildcard test/sql/*.sql)
+TESTS = $(wildcard test/sql/test.sql)
+
+ifdef WITH_LLAMAFILE
+TESTS += test/sql/llamafile.sql
+endif
+
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))
 REGRESS_OPTS = --inputdir=test --load-extension=$(EXTENSION)
 
@@ -22,6 +27,7 @@ PG_LDFLAGS ?= $(shell $(PYTHON)-config --ldflags)
 SHLIB_LINK += -lpython$(PYVERSION)
 
 ifdef WITH_LLAMAFILE
+PG_CFLAGS += -DWITH_LLAMAFILE
 CURL_CONFIG = curl-config
 CFLAGS += $(shell $(CURL_CONFIG) --cflags)
 SHLIB_LINK += $(shell $(CURL_CONFIG) --libs)

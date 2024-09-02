@@ -9,6 +9,8 @@
 
 **pgllm** brings LLMs to Postgres.
 
+It does so primarily by embedding CPython and wrapping the beautiful [llm](https://github.com/simonw/llm) Python library.
+
 ## API
 
 * `llm_generate(input text, model text[, params jsonb]) → text`
@@ -25,6 +27,18 @@
 
 ## Usage
 
+### Generation
+
+Let's start by installing a simple generational model
+
+```shell
+python3 -m llm install llm-markov
+```
+
+**IMPORTANT**: 
+You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation;
+better be explicit.
+
 ```sql
 select llm_generate('hello world', 'markov');
           llm_generate          
@@ -33,7 +47,7 @@ select llm_generate('hello world', 'markov');
 (1 row)
 ```
 
-### Model Parameteres
+### Model Parameters
 
 Can be passed as a `jsonb` argument. 
 
@@ -45,11 +59,45 @@ select llm_generate('hello world', 'markov', '{"length": 20, "delay": 0.2}');
 (1 row)
 ```
 
+### Embeddings
+
+Install a dummy embedding model
+
+```shell
+python3 -m llm install llm-embed-hazo
+```
+
+```sql
+select llm_embed('hello world', 'hazo');
+
+             llm_embed             
+-----------------------------------
+{5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+(1 row)
+```
+
+#### pgvector
+
+If you have **pgvector** already installed 
+you can cast the resulting `float8[]` to a `vector` type instead,
+and use pgvector as usual.
+
+For example to get the L2 distance:
+
+```sql
+select llm_embed('hello world', 'hazo')::vector <-> llm_embed('world hold on', 'hazo')::vector;
+     ?column?     
+------------------
+ 2.23606797749979
+(1 row)
+```
+
 ## Local Models
 
 ### llamafile
 
 pgllm supports llamafile by using curl to query its web API.
+This does not use the `llm-llamafile` plugin!
 
 Install with `WITH_LLAMAFILE=1` flag
 
@@ -92,31 +140,26 @@ SELECT llm_generate('3 neat characteristics of a pelican', 'llamafile')::jsonb
 (1 row)
 ```
 
-You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation.
-
-Some dummy models 
-```shell
-python3 -m llm install llm-markov
-python3 -m llm install llm-embed-hazo
-```
-
-Some more sophisticated models that will download artifacts in the background, the first time they'll be used 
-
 ## Remote APIs
 
-LLM plugins for [remote APIs](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis) are supported.
+LLM plugins for [remote APIs](https://llm.datasette.io/en/stable/plugins/directory.html#remote-apis) 
+should work easily.
 
-Start by installing the model plugin you want
+Start by installing the model plugin you want, for example:
+
 ```shell
 python3 -m llm install llm-mistral
 ```
 
-And then use you can pass the API_KEY as a parameter.
+And then use you can pass the API_KEY as a model parameter.
 
 ```shell
 select llm_generate('hello world', 'mistral', '{"mistral": "abc0123"}');
 ```
 
+**WARNING**:
+You can easily exhaust any credits you may have by a simple `select` query.
+Hence, use with caution!
 
 ## Embeddings
 
@@ -157,4 +200,4 @@ select llm_embed('hello world', 'onnx-bge-micro');
 
 ## Installation
 
-See [build.yml](workflows/.github/build.yml)
+See [build.yml](.github/workflows/build.yml)

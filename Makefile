@@ -18,7 +18,8 @@ TESTS = test/sql/setup.sql \
 		test/sql/gen_markov.sql \
 		test/sql/embed_hazo.sql \
 		test/sql/embed_onnx.sql \
-		test/sql/embed_jina.sql
+		test/sql/embed_jina.sql \
+		test/sql/embed_clip.sql
 
 ifdef WITH_LLAMAFILE
 TESTS += test/sql/gen_llamafile.sql

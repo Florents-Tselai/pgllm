@@ -7,7 +7,7 @@
 [![Build](https://github.com/Florents-Tselai/pgllm/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3Abuild)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/pgllm/blob/main/LICENSE)
 
-**pgllm** brings LLMs to Postgres, by embedding the Python [llm](github.com/simonw/llm) library.
+**pgllm** brings LLMs to Postgres.
 
 ## API
 
@@ -19,11 +19,11 @@
 - **Text Generation:** Generate text based on input prompts using specified LLM models.
 - **Text/Binary Embedding:** Convert text into numerical embeddings for use in machine learning models or similarity searches.
 - **Customizable Parameters:** Pass additional parameters to the LLM models as JSONB for more flexible text generation and embedding.
-- **pgvector** integration
+- **pgvector** integration.
 - Support for [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
 - Mozilla [llamafile](https://github.com/Mozilla-Ocho/llamafile) support.
 
-## Installing Models
+## Python [llm](https://llm.datasette.io/en/stable/plugins/directory.html) Plugins
 
 You have to be sure that the `python3` you're using is the same one that you pointed to during the Installation.
 

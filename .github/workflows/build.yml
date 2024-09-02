@@ -30,7 +30,9 @@ jobs:
           libpam0g-dev \
           libldap2-dev \
           libedit-dev \
-          wget
+          wget \
+          libcurl4-gnutls-dev \
+          curl
 
       - name: Download PostgreSQL
         run: |
@@ -57,13 +59,9 @@ jobs:
 
       - run: pip install -r requirements-dev.txt
 
-      - name: 'install curl'
-        run: |
-          sudo apt-get -y install libcurl4-gnutls-dev
-
       - name: 'Install llamafile'
         run : |
-          wget "https://huggingface.co/Mozilla/llava-v1.5-7b-llamafile/resolve/main/llava-v1.5-7b-q4.llamafile?download=true" -o llava-v1.5-7b-q4.llamafile
+          curl "https://huggingface.co/Mozilla/llava-v1.5-7b-llamafile/resolve/main/llava-v1.5-7b-q4.llamafile" -o llava-v1.5-7b-q4.llamafile
           chmod +x llava-v1.5-7b-q4.llamafile
           ./llava-v1.5-7b-q4.llamafile
 

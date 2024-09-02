@@ -1,0 +1,6 @@
+select llm_generate('3 neat characteristics of a pelican', 'llamafile');
+   llm_generate   
+------------------
+ llamafile result
+(1 row)
+

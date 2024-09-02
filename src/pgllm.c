@@ -202,6 +202,10 @@ text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     return result;
 }
 
+text *llamafile_generate_internal(void *params, char *prompt, int prompt_len) {
+    return cstring_to_text("llamafile result");
+}
+
 text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len) {
     LlmModelCtxt *model = (LlmModelCtxt *) state;
 

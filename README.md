@@ -210,3 +210,16 @@ make all PYTHON=/path/to/bin/python3.11 PYTHON_CONFIG=/path/to/python3.11-config
 make install
 make installcheck
 ```
+
+The host `postgrse` process must have access to the Python library too.
+You can set LD_LIBRARY_PATH before starting postgres.
+
+For example you may have to to something like:
+
+```shell
+export LD_LIBRARY_PATH="$pythonLocation"/lib:/usr/local/lib:/usr/lib:$HOME/local/lib:$LD_LIBRARY_PATH
+$PGBIN/initdb $PGDATA
+$PGBIN/pg_ctl --pgdata $PGDATA start
+```
+
+See [build.yml](./.github/workflows/build.yml)

@@ -21,6 +21,12 @@ PG_CFLAGS ?= $(shell $(PYTHON)-config --includes)
 PG_LDFLAGS ?= $(shell $(PYTHON)-config --ldflags)
 SHLIB_LINK += -lpython$(PYVERSION)
 
+ifdef WITH_LLAMAFILE
+CURL_CONFIG = curl-config
+CFLAGS += $(shell $(CURL_CONFIG) --cflags)
+SHLIB_LINK += $(shell $(CURL_CONFIG) --libs)
+endif
+
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 

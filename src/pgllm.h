@@ -34,7 +34,18 @@ extern text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_
 text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len);
 
 #ifdef WITH_LLAMAFILE
+#include <curl/curl.h>
 text *llamafile_generate_internal(void *params, char *prompt, int prompt_len);
+
+typedef struct {
+    char *memory;
+    size_t size;
+} MemoryStruct;
+
+
+size_t write_callback(void *ptr, size_t size, size_t nmemb, MemoryStruct *result);
+
+
 #endif
 
 text *impl_pyupper(void *params, char *prompt, int prompt_len);

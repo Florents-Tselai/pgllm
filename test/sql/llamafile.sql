@@ -1,1 +1,2 @@
-select llm_generate('3 neat characteristics of a pelican', 'llamafile');
+SELECT (jsonb_extract_path_text(llm_generate('3 neat characteristics of a pelican', 'llamafile')::jsonb, 'choices', '0',
+                                'message', 'content') LIKE '1. Pelican%');

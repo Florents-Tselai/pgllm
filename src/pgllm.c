@@ -202,9 +202,94 @@ text *repeat_n_generate_internal(void *params, char *prompt, int prompt_len) {
     return result;
 }
 
-text *llamafile_generate_internal(void *params, char *prompt, int prompt_len) {
-    return cstring_to_text("llamafile result");
+
+#ifdef WITH_LLAMAFILE
+
+size_t write_callback(void *ptr, size_t size, size_t nmemb, MemoryStruct *result) {
+    size_t total_size = size * nmemb;
+    char *new_memory = realloc(result->memory, result->size + total_size + 1); // +1 for null-terminator
+
+    if (new_memory == NULL) {
+        // Memory allocation failed
+        fprintf(stderr, "Not enough memory (realloc returned NULL)\n");
+        return 0;  // Returning 0 will signal an error to libcurl
+    }
+
+    result->memory = new_memory;
+    memcpy(&(result->memory[result->size]), ptr, total_size);
+    result->size += total_size;
+    result->memory[result->size] = '\0';  // Null-terminate the string
+
+    return total_size;
 }
+
+text *llamafile_generate_internal(void *params, char *prompt, int prompt_len) {
+    CURL *curl;
+    CURLcode res;
+    MemoryStruct result;
+
+    const char *system_prompt = "You are an AI assistant.";
+
+    // Buffer to hold the JSON data
+    char json_data[4096]; // Increased buffer size to accommodate both prompts
+
+    // Format the JSON data, inserting both the system prompt and user prompt dynamically
+    snprintf(json_data, sizeof(json_data),
+             "{\"model\": \"LLaMA_CPP\","
+             "\"messages\": ["
+             "{\"role\": \"system\","
+             "\"content\": \"%s\"},"
+             "{\"role\": \"user\","
+             "\"content\": \"%s\"}"
+             "]}", system_prompt, prompt);
+
+    // Initialize the result struct
+    result.memory = malloc(1);  // Initial allocation
+    if (result.memory == NULL) {
+        fprintf(stderr, "Not enough memory to allocate initial buffer\n");
+        return NULL;
+    }
+    result.size = 0;  // No data received yet
+
+    // Initialize curl
+    curl = curl_easy_init();
+    if (curl) {
+        // Set the URL for the POST request
+        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8080/v1/chat/completions");
+
+        // Set the POST data
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
+
+        // Set the content type to application/json
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        headers = curl_slist_append(headers, "Authorization: Bearer no-key");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+        // Set the write callback function
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+
+        // Pass the result struct to the callback function
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &result);
+
+        // Perform the request, res will get the return code
+        res = curl_easy_perform(curl);
+
+        // Check for errors
+        if (res != CURLE_OK) {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        } else {
+            // Print the result
+            printf("%s\n", result.memory);
+        }
+
+        curl_slist_free_all(headers); // Free the list of headers
+        curl_easy_cleanup(curl); // Cleanup curl stuff
+        return cstring_to_text(result.memory);
+    }
+
+}
+#endif
 
 text *jsonb_transform_llm_generate(void *state, char *prompt, int prompt_len) {
     LlmModelCtxt *model = (LlmModelCtxt *) state;

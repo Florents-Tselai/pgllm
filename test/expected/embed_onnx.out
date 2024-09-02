@@ -1,0 +1,24 @@
+select array_length(llm_embed('hello world', 'onnx-bge-micro'), 1);
+ array_length 
+--------------
+          384
+(1 row)
+
+select array_length(llm_embed('hello world', 'onnx-gte-tiny'), 1);
+ array_length 
+--------------
+          384
+(1 row)
+
+select array_length(llm_embed('hello world', 'onnx-minilm-l6'), 1);
+ array_length 
+--------------
+          384
+(1 row)
+
+select array_length(llm_embed('hello world', 'onnx-minilm-l12'), 1);
+ array_length 
+--------------
+          384
+(1 row)
+

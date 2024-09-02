@@ -1,0 +1,7 @@
+-- testing a simple model coded in C and store in the static catalog
+select llm_generate('hello', 'repeat-3');
+  llm_generate   
+-----------------
+ hellohellohello
+(1 row)
+

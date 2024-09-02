@@ -13,10 +13,15 @@ HEADERS = src/pgllm.h
 
 DATA = $(wildcard sql/*--*.sql)
 
-TESTS = test/sql/setup.sql test/sql/test.sql
+TESTS = test/sql/setup.sql \
+		test/sql/basic.sql \
+		test/sql/gen_markov.sql \
+		test/sql/embed_hazo.sql \
+		test/sql/embed_onnx.sql \
+		test/sql/embed_jina.sql
 
 ifdef WITH_LLAMAFILE
-TESTS += test/sql/llamafile.sql
+TESTS += test/sql/gen_llamafile.sql
 endif
 
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))

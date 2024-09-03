@@ -1,11 +1,25 @@
-# pgllm: Use LLMs in Postgres
+<p align="center">
+<p align="center">
+   <img width="50%" height="40%" src="https://raw.githubusercontent.com/Florents-Tselai/pgllm/main/docs/static/logo.webp" alt="Logo">
+  </p>
+  <h1 align="center">pgllm: Use LLMs in Postgres</h1>
+  <p align="center">
+    <a href="#api"><strong> API </strong></a> |
+    <a href="#usage"><strong> Usage </strong></a> |
+    <a href="#llamafile"><strong> llamafile </strong></a> |
+    <a href="#embeddings"><strong> Embeddings </strong></a> |
+    <a href="#installation"><strong> Installation </strong></a>
+    
+   </p>
+<p align="center">
 
-[![Github](https://img.shields.io/static/v1?label=GitHub&message=Repo&logo=GitHub&color=green)](https://github.com/Florents-Tselai/pgllm)
-[![Documentation Status](https://readthedocs.org/projects/pgllm/badge/?version=stable)](http://pgllm.tselai.com/en/latest/?badge=stable)
-[![Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/florentstselai/)
-[![Github Sponsors](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=pink)](https://github.com/sponsors/Florents-Tselai/)
-[![Build](https://github.com/Florents-Tselai/pgllm/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/pgllm/actions?query=workflow%3Abuild)
-[![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/pgllm/blob/main/LICENSE)
+<p align="center">
+  <a href="https://github.com/Florents-Tselai/pgllm"><img src="https://img.shields.io/badge/GitHub-repo-green"></a>
+  <a href="https://github.com/Florents-Tselai/pgllm/actions/workflows/build.yml?branch=mainline"><img src="https://github.com/Florents-Tselai/pgllm/actions/workflows/build.yml/badge.svg"></a>
+  <a href="http://pgllm.tselai.com/"><img src="https://readthedocs.org/projects/pgllm/badge/?version=stable"></a>
+  <a href="https://www.linkedin.com/in/florentstselai/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white"></a>
+  <a href="https://github.com/sponsors/Florents-Tselai/"><img src="https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&link=https://github.com/sponsors/Florents-Tselai/"></a>
+</p>
 
 **pgllm** brings LLMs to Postgres.
 

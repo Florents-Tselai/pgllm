@@ -25,19 +25,36 @@
 
 It does so primarily by embedding CPython and wrapping the beautiful [llm](https://github.com/simonw/llm) Python library.
 
+## Features
+
+```tsql
+CREATE EXTENSION pgllm;
+```
+
+Text generation with both local and remote models.
+
+```tsql
+SELECT llm_generate('hello world', 'markov', '{"length": 20, "delay": 0.2}');
+SELECT llm_generate('hello world', 'mistral', '{"mistral": "abc0123"}');
+```
+llamafile support
+
+```tsql
+SELECT llm_generate('A story about a frog', 'llamafile')
+```
+
+Embedding models and pgvector support
+
+```tsql
+SELECT llm_embed('hello world', 'jina-embeddings-v2-small-en')::vector;
+```
+
+You can use any [LLM plugin](https://llm.datasette.io/en/stable/plugins/index.html)
+
 ## API
 
 * `llm_generate(input text, model text[, params jsonb]) → text`
 * `llm_embed(input text/bytea, model text[, params jsonb]) → float8[]`
-  
-## Features
-
-- **Text Generation:** Generate text based on input prompts using specified LLM models.
-- **Text/Binary Embedding:** Convert text into numerical embeddings for use in machine learning models or similarity searches.
-- **Customizable Parameters:** Pass additional parameters to the LLM models as JSONB for more flexible text generation and embedding.
-- **pgvector** integration.
-- Support multiple models via [LLM plugins](https://llm.datasette.io/en/stable/plugins/index.html)
-- Mozilla [llamafile](https://github.com/Mozilla-Ocho/llamafile) support.
 
 ## Usage
 
